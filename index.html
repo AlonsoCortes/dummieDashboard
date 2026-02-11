@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Proyectos SECTEI</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Estilos propios -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Franja superior degradado -->
+  <div class="header-stripe"></div>
+
+  <header>
+    <h1>Dashboard de Proyectos SECTEI</h1>
+    <p>Secretar&iacute;a de Educaci&oacute;n, Ciencia, Tecnolog&iacute;a e Innovaci&oacute;n &mdash; Ciudad de M&eacute;xico</p>
+  </header>
+
+  <main>
+    <!-- Filtros -->
+    <section class="filtros">
+      <div class="filtro-group">
+        <label for="filtro-year">Convocatoria</label>
+        <select id="filtro-year">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="filtro-group">
+        <label for="filtro-inst">Instituci&oacute;n</label>
+        <select id="filtro-inst">
+          <option value="">Todas</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="kpis">
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-monto">$0</div>
+        <div class="kpi-label">Monto total asignado</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-proyectos">0</div>
+        <div class="kpi-label">Proyectos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-instituciones">0</div>
+        <div class="kpi-label">Instituciones</div>
+      </div>
+    </section>
+
+    <!-- Gráfica + Mapa -->
+    <section class="chart-map-row">
+      <div class="chart-container">
+        <h2 class="section-title">Monto por eje estrat&eacute;gico</h2>
+        <div id="chart-barras"></div>
+      </div>
+      <div class="map-container">
+        <h2 class="section-title">Ubicaci&oacute;n de proyectos</h2>
+        <div id="mapa"></div>
+      </div>
+    </section>
+
+    <!-- Tabla -->
+    <section>
+      <h2 class="section-title">Proyectos</h2>
+      <div class="tabla-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Proyecto</th>
+              <th>Instituci&oacute;n</th>
+              <th>Eje estrat&eacute;gico</th>
+              <th>Monto</th>
+              <th>Estatus</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- D3.js -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <!-- Observable Plot -->
+  <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- App -->
+  <script src="js/main.js"></script>
+</body>
+</html>

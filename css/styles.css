@@ -1,0 +1,230 @@
+/* === Paleta SECTEI === */
+:root {
+  --guinda: #9D2449;
+  --dorado: #B38E5D;
+  --fondo: #FFFFFF;
+  --texto: #333333;
+  --gris-claro: #F5F5F5;
+  --gris-borde: #E0E0E0;
+}
+
+/* === Reset & base === */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+  line-height: 1.5;
+}
+
+/* === Header === */
+.header-stripe {
+  height: 6px;
+  background: linear-gradient(90deg, var(--dorado) 0%, var(--guinda) 100%);
+}
+
+header {
+  background: var(--guinda);
+  color: #fff;
+  padding: 1.2rem 2rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+header p {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  margin-top: 0.2rem;
+}
+
+/* === Main layout === */
+main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem;
+}
+
+/* === Filtros === */
+.filtros {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.filtros label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--guinda);
+}
+
+.filtros .filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.filtros select {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--gris-borde);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--texto);
+  background: #fff;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.filtros select:focus {
+  outline: 2px solid var(--dorado);
+  border-color: var(--dorado);
+}
+
+/* === Tarjetas KPI === */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.kpi-card {
+  background: var(--gris-claro);
+  border-radius: 8px;
+  padding: 1.2rem 1.5rem;
+  border-left: 4px solid var(--guinda);
+}
+
+.kpi-card .kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--guinda);
+}
+
+.kpi-card .kpi-label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* === Secciones === */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--guinda);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--dorado);
+}
+
+/* === Grid dos columnas (gráfica + mapa) === */
+.chart-map-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-container, .map-container {
+  background: var(--gris-claro);
+  border-radius: 8px;
+  padding: 1.2rem;
+  min-height: 380px;
+}
+
+#chart-barras {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#mapa {
+  height: 340px;
+  border-radius: 6px;
+}
+
+/* === Tabla === */
+.tabla-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+thead {
+  background: var(--guinda);
+  color: #fff;
+}
+
+th {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--gris-borde);
+}
+
+tbody tr:hover {
+  background: #fdf0f3;
+}
+
+.estatus {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estatus--ejecucion {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.estatus--finalizado {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.estatus--planeacion {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* === Observable Plot overrides === */
+#chart-barras svg {
+  font-family: inherit;
+}
+
+/* === Responsive === */
+@media (max-width: 800px) {
+  .chart-map-row {
+    grid-template-columns: 1fr;
+  }
+
+  header {
+    padding: 1rem;
+  }
+
+  main {
+    padding: 1rem;
+  }
+}
