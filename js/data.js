@@ -13,12 +13,15 @@ export async function cargarDatos() {
     d3.csv("datos/03_institucion_normalizada.csv"),
   ]);
 
-  // id_proyecto → _institucion_raiz  (primera aparición por proyecto)
+  // id_proyecto → { institucion, unidad }  (primera aparición por proyecto)
   const instMap = new Map();
   rawInst.forEach(r => {
     const pid = r.proyecto_id?.trim();
     if (pid && !instMap.has(pid)) {
-      instMap.set(pid, r._institucion_raiz?.trim() || r.razon_social?.trim() || "Sin institución");
+      instMap.set(pid, {
+        institucion: r._institucion_raiz?.trim() || r.razon_social?.trim() || "Sin institución",
+        unidad: r._unidad?.trim() || "",
+      });
     }
   });
 
@@ -29,7 +32,9 @@ export async function cargarDatos() {
       const monto       = +d.total_financiamiento || 0;
       const anio        = d._anio_registro?.trim() || "";
       const statusId    = d.status_id?.trim() || "";
-      const institucion = instMap.get(id) || "Sin institución";
+      const instData    = instMap.get(id) || {};
+      const institucion = instData.institucion || "Sin institución";
+      const unidad      = instData.unidad || "";
       const acronimo    = d.acronimo?.trim() || d._titulo_normalizado?.trim() || d.titulo_proyecto?.trim() || "Sin título";
       const campo       = d.campo_estudio?.trim() || "";
       const tipo        = d.tipo_proyecto?.trim()  || "";
@@ -46,6 +51,7 @@ export async function cargarDatos() {
         estatus: STATUS_MAP[statusId] ?? (statusId ? `Estatus ${statusId}` : "Sin estatus"),
         statusId,
         institucion,
+        unidad,
         campo,
         tipo,
         nombreRT,

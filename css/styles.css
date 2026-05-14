@@ -31,6 +31,95 @@ body {
   background: linear-gradient(90deg, var(--dorado) 0%, var(--guinda) 100%);
 }
 
+/* === Navegación de vistas === */
+.vista-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  background: #fff;
+  border-bottom: 1px solid var(--gris-borde);
+}
+
+.vista-tab {
+  padding: 0.4rem 1.1rem;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 20px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.vista-tab:hover {
+  border-color: var(--dorado);
+  color: var(--guinda);
+}
+
+.vista-tab--activa {
+  background: var(--guinda);
+  border-color: var(--guinda);
+  color: #fff;
+  font-weight: 600;
+}
+
+.vista-tab--activa:hover {
+  background: var(--guinda);
+  color: #fff;
+}
+
+.vista-tab--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* === Encabezado contextual de institución seleccionada === */
+#inst-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, var(--guinda) 6%, #fff);
+  border-left: 4px solid var(--guinda);
+  border-radius: 0 6px 6px 0;
+  flex-wrap: wrap;
+}
+
+#inst-nombre {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--guinda);
+}
+
+.inst-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--dorado);
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+}
+
+.inst-clear-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.7rem;
+  border: 1.5px solid var(--guinda);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--guinda);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.inst-clear-btn:hover {
+  background: var(--guinda);
+  color: #fff;
+}
+
 /* === Filtros === */
 .filtros {
   display: flex;
@@ -73,20 +162,20 @@ body {
 .kpi-card {
   background: var(--gris-claro);
   border-radius: 8px;
-  padding: 1.2rem 1.5rem;
+  padding: 0.9rem 1.1rem;
   border-left: 4px solid var(--guinda);
 }
 
 .kpi-card .kpi-value {
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--guinda);
 }
 
 .kpi-card .kpi-label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #666;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -247,37 +336,52 @@ tbody tr:hover {
   align-items: stretch;
 }
 
+/* Vista institución: KPIs en fila 1 (lado a lado), gráficas en fila 2 (full width) */
+.resumen-top-row--inst {
+  grid-template-columns: 1fr 1fr;
+}
+.resumen-top-row--inst .chart-section {
+  grid-column: 1 / -1;
+}
+
+/* Dos gráficas lado a lado dentro del chart-section en vista institución */
+.chart-inst-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
 /* Columna de KPIs apilados */
 .kpis-col {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 0.55rem;
 }
 
 .kpis-col .kpi-card,
 .kpis-col .kpi-card--secondary {
-  flex: 1;
+  flex: 0 0 auto;
 }
 
 .kpi-card--secondary {
   background: #fff;
   border-radius: 8px;
-  padding: 0.9rem 1.2rem;
+  padding: 0.65rem 0.9rem;
   border-left: 4px solid var(--dorado);
   box-shadow: 0 1px 3px rgba(0,0,0,0.07);
 }
 
 .kpi-card--secondary .kpi-value {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--dorado);
 }
 
 .kpi-card--secondary .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: #888;
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -426,6 +530,152 @@ tbody tr:hover {
   background: color-mix(in srgb, var(--guinda) 8%, #fff);
   color: var(--guinda);
   font-weight: 600;
+}
+
+/* === Sidebar ranking tables === */
+.inst-rank-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inst-rank-table thead {
+  background: transparent;
+}
+
+.inst-rank-table th {
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--guinda);
+  border-bottom: 1.5px solid var(--dorado);
+  white-space: nowrap;
+}
+
+.inst-rank-table th:last-child { text-align: right; }
+
+.inst-rank-table td {
+  padding: 0.28rem 0.4rem;
+  border-bottom: 1px solid var(--gris-borde);
+  font-size: 0.78rem;
+  color: #333;
+  vertical-align: top;
+  line-height: 1.3;
+}
+
+.inst-rank-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #555;
+}
+
+.inst-rank-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.inst-rank-row:hover { background: #fff0f3; }
+
+.inst-rank-row--sel { background: color-mix(in srgb, var(--guinda) 8%, #fff); }
+.inst-rank-row--sel td { color: var(--guinda) !important; font-weight: 600; }
+
+/* === Institution search === */
+.inst-search-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.inst-search-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--guinda);
+}
+
+.inst-search-box {
+  position: relative;
+}
+
+.inst-search-input {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 0.9rem;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--texto);
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239D2449' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.8rem center;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.inst-search-input:focus {
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dorado) 20%, transparent);
+}
+
+.inst-search-dropdown {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1.5px solid var(--dorado);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.13);
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  z-index: 200;
+  display: none;
+}
+
+.inst-search-option {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  line-height: 1.35;
+  transition: background 0.1s;
+}
+
+.inst-search-option:hover {
+  background: color-mix(in srgb, var(--dorado) 12%, #fff);
+}
+
+/* === Fila de filtros institución + unidad === */
+.inst-filters-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+.inst-filters-col--main  { flex: 2; min-width: 0; }
+.inst-filters-col--unidad { flex: 1; min-width: 0; }
+
+/* === Select de unidad (con flecha personalizada) === */
+.inst-unidad-select {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 0.9rem;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--texto);
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239D2449' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.8rem center;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.inst-unidad-select:focus {
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dorado) 20%, transparent);
 }
 
 /* === Responsive === */

@@ -19,6 +19,7 @@ export function renderTabla(datos) {
       <td>${d.id || "—"}</td>
       <td>${label}</td>
       <td>${d.institucion}</td>
+      <td>${d.unidad || "—"}</td>
       <td>${d.campo
         ? `<span style="display:inline-flex;align-items:center;gap:0.35rem">
              <span style="width:8px;height:8px;border-radius:50%;background:${CAMPO_COLORS[d.campo] || '#ccc'};flex-shrink:0;display:inline-block"></span>

@@ -4,8 +4,8 @@
 
 import { CAMPOS_ESTUDIO, CAMPO_COLORS } from "../config.js";
 
-export function renderChartRadar(datos) {
-  const container = document.getElementById("chart-radar");
+export function renderChartRadar(datos, containerId = "chart-radar") {
+  const container = document.getElementById(containerId);
   if (!container) return;
   container.innerHTML = "";
 

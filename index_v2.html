@@ -12,6 +12,13 @@
   <!-- Franja superior -->
   <div class="header-stripe"></div>
 
+  <!-- Navegación de vistas -->
+  <nav class="vista-nav">
+    <button class="vista-tab vista-tab--activa" data-vista="general">General</button>
+    <button class="vista-tab" data-vista="institucion">Instituci&oacute;n</button>
+    <button class="vista-tab vista-tab--disabled" data-vista="rt" disabled>Responsable T&eacute;cnico</button>
+  </nav>
+
   <div class="app-layout">
 
     <!-- ===== SIDEBAR ===== -->
@@ -32,7 +39,8 @@
             <option value="">Todos</option>
           </select>
         </div>
-        <div class="filtro-group">
+        <!-- Filtro institución: solo visible en vista general -->
+        <div class="filtro-group" id="filtro-inst-group">
           <label for="filtro-inst">Instituci&oacute;n</label>
           <select id="filtro-inst">
             <option value="">Todas</option>
@@ -42,8 +50,8 @@
 
       <hr class="sidebar-divider">
 
-      <!-- Gráficas globales (no filtradas) -->
-      <div class="sidebar-charts">
+      <!-- Charts sidebar — vista general (global, no filtradas) -->
+      <div class="sidebar-charts" id="sidebar-charts-general">
         <div>
           <div class="sidebar-chart-label">Proyectos por a&ntilde;o &mdash; total general</div>
           <div id="chart-tendencia"></div>
@@ -54,14 +62,53 @@
         </div>
       </div>
 
+      <!-- Charts sidebar — vista institución -->
+      <div class="sidebar-charts" id="sidebar-charts-inst" style="display:none">
+        <div>
+          <div class="sidebar-chart-label">Top instituciones &mdash; proyectos</div>
+          <div id="chart-inst-ranking"></div>
+        </div>
+        <div>
+          <div class="sidebar-chart-label">Top instituciones &mdash; monto</div>
+          <div id="chart-inst-monto"></div>
+        </div>
+      </div>
+
     </aside>
 
     <!-- ===== MAIN CONTENT ===== -->
     <main class="main-content">
 
+      <!-- Fila de filtros de institución (solo visible en vista institución) -->
+      <div id="inst-search-section" style="display:none; margin-bottom:1.2rem">
+        <div class="inst-filters-row">
+          <div class="inst-search-wrap inst-filters-col--main">
+            <label class="inst-search-label">Buscar instituci&oacute;n</label>
+            <div class="inst-search-box">
+              <input type="text" id="inst-search-input" class="inst-search-input"
+                     placeholder="Escribe para buscar..." autocomplete="off">
+              <ul id="inst-search-dropdown" class="inst-search-dropdown"></ul>
+            </div>
+          </div>
+          <div id="filtro-unidad-group" class="inst-search-wrap inst-filters-col--unidad">
+            <label class="inst-search-label">Unidad</label>
+            <select id="filtro-unidad" class="inst-unidad-select">
+              <option value="">Todas</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Encabezado contextual de institución seleccionada (oculto por defecto) -->
+      <div id="inst-header" style="display:none">
+        <span id="inst-nombre"></span>
+        <span class="inst-badge" id="inst-badge"></span>
+        <button class="inst-clear-btn" id="inst-clear">&#x2715; Limpiar selecci&oacute;n</button>
+      </div>
+
       <h2 class="section-title" style="margin-top:0">Resumen</h2>
 
-      <!-- KPIs + gráfica en una fila -->
+      <!-- KPIs + gráfica en una fila (compartidos entre vistas) -->
       <div class="resumen-top-row">
 
         <!-- Columna 1: KPIs primarios -->
@@ -77,6 +124,10 @@
           <div class="kpi-card">
             <div class="kpi-value" id="kpi-instituciones">0</div>
             <div class="kpi-label">Instituciones</div>
+          </div>
+          <div class="kpi-card" id="kpi-unidades-card" style="display:none">
+            <div class="kpi-value" id="kpi-unidades">0</div>
+            <div class="kpi-label">Unidades</div>
           </div>
         </div>
 
@@ -96,13 +147,30 @@
           </div>
         </div>
 
-        <!-- Columna 3: Gráfica campo de estudio (mitad del espacio) -->
+        <!-- Columna 3: gráfica que cambia según vista / estado -->
         <div class="chart-section">
-          <h2 class="section-title">Campo de estudio</h2>
-          <div id="chart-radar"></div>
+
+          <!-- Vista general: radar de campo de estudio -->
+          <div id="chart-section-general">
+            <h2 class="section-title">Campo de estudio</h2>
+            <div id="chart-radar"></div>
+          </div>
+
+          <!-- Vista institución: radar + timeline en fila (gestionado por chart-inst-row) -->
+          <div id="chart-inst-row" class="chart-inst-row" style="display:none">
+            <div id="chart-section-inst">
+              <h2 class="section-title">Campo de estudio</h2>
+              <div id="chart-radar-inst"></div>
+            </div>
+            <div id="inst-timeline-section">
+              <h2 class="section-title">Proyectos por a&ntilde;o</h2>
+              <div id="chart-inst-timeline"></div>
+            </div>
+          </div>
+
         </div>
 
-      </div>
+      </div><!-- /.resumen-top-row -->
 
       <!-- Tabla full width -->
       <section class="tabla-section">
@@ -115,6 +183,7 @@
                 <th>ID</th>
                 <th>Acr&oacute;nimo / T&iacute;tulo</th>
                 <th>Instituci&oacute;n</th>
+                <th>Unidad</th>
                 <th>Campo de estudio</th>
                 <th>Tipo de proyecto</th>
                 <th>Responsable T&eacute;cnico</th>
