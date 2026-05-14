@@ -4,32 +4,75 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Dashboard for SECTEI (Secretaría de Educación, Ciencia, Tecnología e Innovación) to visualize and manage research/innovation projects (convenios) in Mexico City. The project is in early stage — no framework or build system has been chosen yet.
+Dashboard for SECTEI (Secretaría de Educación, Ciencia, Tecnología e Innovación) to visualize and manage research/innovation projects (convenios) in Mexico City.
 
 **Repository:** https://github.com/AlonsoCortes/dummieDashboard
 
+## Dashboard
+
+### `index_v2.html` — visor principal
+Loads two relational CSVs joined at runtime. No map. Script: `js/main_v2.js` (ES modules).
+
 ## Data
 
-Sample data lives in `datos/proyectos_dummie.csv` (20 dummy records). CSV schema:
+### `datos/02_1_tabla_proyecto_limpios_clasificados.csv` — tabla principal (285 filas)
 
-| Column | Description |
+Join key: `id_proyecto`
+
+| Columna | Descripción |
 |---|---|
-| `id` | Project identifier |
-| `numero_convenio` | Agreement number (e.g., CDMX-2025-001) |
-| `convocatorio` | Call year (2023–2025) |
-| `titulo_proyecto` / `titulo_corto` | Full and short project titles |
-| `eje_estrategico` | Strategic axis (7 categories — see below) |
-| `tematica` | Thematic area |
-| `palabras_clave` | Comma-separated keywords |
-| `titular_proyecto` | Project lead |
-| `institucion` | Parent institution (UNAM, IPN, UAM, CentroGeo) |
-| `institucion_adjudicada` | Specific institute/department |
-| `alcaldia` / `colonia` | Mexico City administrative division / neighborhood |
-| `monto_asignado_mxn` | Budget in MXN (range: 950K–5M) |
-| `fecha_inicio` / `fecha_fin` | Start/end dates (DD/MM/YYYY format) |
-| `estatus_proyecto` | Status: "En ejecución", "Finalizado", or "Planeación" |
+| `id_proyecto` | Identificador del proyecto — **clave de join** |
+| `acronimo` | Acrónimo corto del proyecto |
+| `_titulo_normalizado` | Título limpio y normalizado (preferido sobre `titulo_proyecto`) |
+| `titulo_proyecto` | Título original (fallback) |
+| `total_financiamiento` | Presupuesto en MXN |
+| `_anio_registro` | Año de convocatoria (usado como filtro) |
+| `status_id` | Código de estatus (ver STATUS_MAP en config.js) |
+| `campo_estudio` | Área de conocimiento (6 categorías — ver CAMPOS_ESTUDIO en config.js) |
+| `tipo_proyecto` | Tipo de proyecto |
+| `_excluir` | `"1"` marca filas duplicadas — se filtran al cargar |
 
-**Strategic axes (ejes estratégicos):** Agua y Sustentabilidad, Medio Ambiente, Movilidad y Espacio Público, Gestión de Riesgos, Transición Energética, Innovación y Tecnología, Desarrollo Económico.
+### `datos/03_institucion_normalizada.csv` — instituciones (417 filas, 31 cols)
+
+Join key: `proyecto_id` → `02_1_tabla_proyecto_limpios_clasificados.id_proyecto`
+
+| Columna | Descripción |
+|---|---|
+| `proyecto_id` | FK → `proyectos.id` — **clave de join** |
+| `_institucion_raiz` | Nombre raíz de la institución (usado en filtro y tabla) |
+| `razon_social` | Nombre legal (fallback) |
+
+Un proyecto puede tener múltiples filas. Se usa la **primera aparición** por `proyecto_id`.
+
+### Estadísticas del join
+
+| | Cantidad |
+|---|---|
+| Proyectos totales (sin `_excluir = 1`) | 247 |
+| Con institución (join exitoso) | 208 (84 %) |
+| Sin institución (sin match) | 39 (16 %) |
+
+## JS Module Structure
+
+```
+js/
+  main_v2.js          — entry point (DOMContentLoaded, wires everything)
+  config.js           — constants: GUINDA, DORADO, STATUS_MAP, CAMPOS_ESTUDIO, CAMPO_COLORS
+  data.js             — carga 2 CSVs, construye instMap (proyecto_id → _institucion_raiz), regresa filas normalizadas
+  filters.js          — poblarFiltros, bindFiltros, datosFiltrados, actualizarOpcionesInst
+  kpis.js             — renderKPIs, formatoMXN
+  tabla.js            — renderTabla
+  charts/
+    tendencia.js      — barY: proyectos por año (global, no filtrado)
+    monto.js          — barY: monto total por año (global, no filtrado)
+    radar.js          — barX: proyectos por campo de estudio (filtrado)
+  ui/
+    customSelect.js   — custom dropdown wrapper for #filtro-inst
+```
+
+## CSS
+
+Todos los estilos en `css/styles.css`. Un solo dashboard, sin scoping adicional.
 
 ## Language & Terminology
 

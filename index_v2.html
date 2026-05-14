@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Proyectos SECTEI</title>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Franja superior -->
+  <div class="header-stripe"></div>
+
+  <div class="app-layout">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar">
+
+      <div class="sidebar-header">
+        <h1>Dashboard SECTEI</h1>
+        <p>Secretar&iacute;a de Educaci&oacute;n, Ciencia, Tecnolog&iacute;a e Innovaci&oacute;n &mdash; CDMX</p>
+      </div>
+
+      <hr class="sidebar-divider">
+
+      <!-- Filtros -->
+      <div class="filtros">
+        <div class="filtro-group">
+          <label for="filtro-year">A&ntilde;o de registro</label>
+          <select id="filtro-year">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="filtro-group">
+          <label for="filtro-inst">Instituci&oacute;n</label>
+          <select id="filtro-inst">
+            <option value="">Todas</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="sidebar-divider">
+
+      <!-- Gráficas globales (no filtradas) -->
+      <div class="sidebar-charts">
+        <div>
+          <div class="sidebar-chart-label">Proyectos por a&ntilde;o &mdash; total general</div>
+          <div id="chart-tendencia"></div>
+        </div>
+        <div>
+          <div class="sidebar-chart-label">Monto por a&ntilde;o &mdash; total general</div>
+          <div id="chart-monto-anio"></div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <h2 class="section-title" style="margin-top:0">Resumen</h2>
+
+      <!-- KPIs + gráfica en una fila -->
+      <div class="resumen-top-row">
+
+        <!-- Columna 1: KPIs primarios -->
+        <div class="kpis-col">
+          <div class="kpi-card">
+            <div class="kpi-value" id="kpi-monto">$0</div>
+            <div class="kpi-label">Monto total asignado</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" id="kpi-proyectos">0</div>
+            <div class="kpi-label">Proyectos</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value" id="kpi-instituciones">0</div>
+            <div class="kpi-label">Instituciones</div>
+          </div>
+        </div>
+
+        <!-- Columna 2: KPIs secundarios -->
+        <div class="kpis-col">
+          <div class="kpi-card--secondary">
+            <div class="kpi-value" id="kpi-promedio">$0</div>
+            <div class="kpi-label">Promedio por proyecto</div>
+          </div>
+          <div class="kpi-card--secondary">
+            <div class="kpi-value" id="kpi-maximo">$0</div>
+            <div class="kpi-label">Monto m&aacute;ximo</div>
+          </div>
+          <div class="kpi-card--secondary">
+            <div class="kpi-value" id="kpi-minimo">$0</div>
+            <div class="kpi-label">Monto m&iacute;nimo</div>
+          </div>
+        </div>
+
+        <!-- Columna 3: Gráfica campo de estudio (mitad del espacio) -->
+        <div class="chart-section">
+          <h2 class="section-title">Campo de estudio</h2>
+          <div id="chart-radar"></div>
+        </div>
+
+      </div>
+
+      <!-- Tabla full width -->
+      <section class="tabla-section">
+        <h2 class="section-title">Proyectos</h2>
+        <div class="tabla-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Folio</th>
+                <th>ID</th>
+                <th>Acr&oacute;nimo / T&iacute;tulo</th>
+                <th>Instituci&oacute;n</th>
+                <th>Campo de estudio</th>
+                <th>Tipo de proyecto</th>
+                <th>Responsable T&eacute;cnico</th>
+                <th>A&ntilde;o</th>
+                <th>Monto total</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div><!-- /.app-layout -->
+
+  <!-- D3.js y Observable Plot (globales, deben cargarse antes del módulo) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+  <!-- App v2 — ES modules -->
+  <script type="module" src="js/main_v2.js"></script>
+</body>
+</html>
