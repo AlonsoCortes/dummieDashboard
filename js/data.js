@@ -9,15 +9,15 @@ import { STATUS_MAP } from "./config.js";
 
 export async function cargarDatos() {
   const [rawProyectos, rawInst] = await Promise.all([
-    d3.csv("datos/02_1_tabla_proyecto_limpios_clasificados.csv"),
-    d3.csv("datos/03_institucion_normalizada.csv"),
+    d3.csv("datos/11_proyectos_RT.csv"),
+    d3.csv("datos/08_universo_instituciones.csv"),
   ]);
 
   // id_proyecto → { institucion, unidad }  (primera aparición por proyecto)
   const instMap = new Map();
   rawInst.forEach(r => {
-    const pid = r.proyecto_id?.trim();
-    if (pid && !instMap.has(pid)) {
+    const pid = String(parseInt(r.proyecto_id, 10));
+    if (pid && pid !== "NaN" && !instMap.has(pid)) {
       instMap.set(pid, {
         institucion: r._institucion_raiz?.trim() || r.razon_social?.trim() || "Sin institución",
         unidad: r._unidad?.trim() || "",
@@ -28,9 +28,9 @@ export async function cargarDatos() {
   return rawProyectos
     .filter(d => d._excluir !== "1")
     .map(d => {
-      const id          = d.id_proyecto?.trim();
+      const id          = String(parseInt(d.id ?? d.id_proyecto, 10));
       const monto       = +d.total_financiamiento || 0;
-      const anio        = d._anio_registro?.trim() || "";
+      const anio        = d._anio_registro ? String(parseInt(d._anio_registro, 10)) : "";
       const statusId    = d.status_id?.trim() || "";
       const instData    = instMap.get(id) || {};
       const institucion = instData.institucion || "Sin institución";
@@ -39,7 +39,7 @@ export async function cargarDatos() {
       const campo       = d.campo_estudio?.trim() || "";
       const tipo        = d.tipo_proyecto?.trim()  || "";
       const folio       = d.folio?.trim() || "";
-      const nombreRT    = d.nombre_RT?.trim() || "";
+      const nombreRT    = d._nombre_RT?.trim() || d.nombre_RT?.trim() || "";
 
       return {
         id,

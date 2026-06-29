@@ -34,10 +34,48 @@ body {
 /* === Navegación de vistas === */
 .vista-nav {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.6rem 1.4rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.4rem;
   background: #fff;
   border-bottom: 1px solid var(--gris-borde);
+}
+
+.nav-logos {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.nav-logo-link:hover {
+  opacity: 0.8;
+}
+
+.nav-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.nav-logo--cdmx {
+  height: 44px;
+}
+
+.nav-logo--sectei {
+  height: 36px;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .vista-tab {
@@ -118,6 +156,25 @@ body {
 .inst-clear-btn:hover {
   background: var(--guinda);
   color: #fff;
+}
+
+/* === Encabezado contextual de RT seleccionado === */
+#rt-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, var(--guinda) 6%, #fff);
+  border-left: 4px solid var(--guinda);
+  border-radius: 0 6px 6px 0;
+  flex-wrap: wrap;
+}
+
+#rt-nombre {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--guinda);
 }
 
 /* === Filtros === */
@@ -211,7 +268,12 @@ th {
   text-align: left;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
+
+th.th--sort-asc::after  { content: " ↑"; opacity: 0.75; }
+th.th--sort-desc::after { content: " ↓"; opacity: 0.75; }
 
 td {
   padding: 0.6rem 1rem;
@@ -336,19 +398,66 @@ tbody tr:hover {
   align-items: stretch;
 }
 
-/* Vista institución: KPIs en fila 1 (lado a lado), gráficas en fila 2 (full width) */
+/* Vista institución: KPIs primarios | gráfica, secundarios abajo en fila */
 .resumen-top-row--inst {
-  grid-template-columns: 1fr 1fr;
-}
-.resumen-top-row--inst .chart-section {
-  grid-column: 1 / -1;
+  grid-template-columns: auto 1fr;
+  align-items: start;
 }
 
-/* Dos gráficas lado a lado dentro del chart-section en vista institución */
+/* KPIs primarios: columna 1, fila 1 */
+.resumen-top-row--inst .kpis-col:first-child {
+  grid-column: 1;
+  grid-row: 1;
+  gap: 0.35rem;
+}
+
+/* KPIs secundarios: columna 1, fila 2, apilados verticalmente */
+.resumen-top-row--inst .kpis-col:nth-child(2) {
+  grid-column: 1;
+  grid-row: 2;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* Gráfica: columna 2, abarca ambas filas, ocupa toda la altura */
+.resumen-top-row--inst .chart-section {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.resumen-top-row--inst #chart-inst-stacked {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Fuerza el SVG de Observable Plot a ocupar el ancho completo del contenedor */
+.resumen-top-row--inst #chart-inst-stacked figure,
+.resumen-top-row--inst #chart-inst-stacked svg {
+  width: 100% !important;
+}
+
+.resumen-top-row--inst .kpi-card {
+  padding: 0.55rem 0.85rem;
+}
+
+.resumen-top-row--inst .kpi-card .kpi-value {
+  font-size: 1rem;
+}
+
+.resumen-top-row--inst .kpi-card--secondary {
+  padding: 0.45rem 0.75rem;
+}
+
+.resumen-top-row--inst .kpi-card--secondary .kpi-value {
+  font-size: 0.85rem;
+}
+
+/* Gráfica apilada de ancho completo en vista institución */
 .chart-inst-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.2rem;
+  width: 100%;
 }
 
 /* Columna de KPIs apilados */

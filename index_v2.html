@@ -14,9 +14,22 @@
 
   <!-- Navegación de vistas -->
   <nav class="vista-nav">
-    <button class="vista-tab vista-tab--activa" data-vista="general">General</button>
-    <button class="vista-tab" data-vista="institucion">Instituci&oacute;n</button>
-    <button class="vista-tab vista-tab--disabled" data-vista="rt" disabled>Responsable T&eacute;cnico</button>
+    <!-- Logos institucionales — izquierda -->
+    <div class="nav-logos">
+      <a href="#" class="nav-logo-link" title="Ciudad de México"><!-- TODO: reemplazar # con URL destino -->
+        <img src="img/logos/Logo_CDMX.png" alt="Ciudad de México" class="nav-logo nav-logo--cdmx">
+      </a>
+      <a href="#" class="nav-logo-link" title="SECTEI"><!-- TODO: reemplazar # con URL destino -->
+        <img src="img/logos/Logo_Dependencia.png" alt="Secretaría de Educación, Ciencia, Tecnología e Innovación" class="nav-logo nav-logo--sectei">
+      </a>
+    </div>
+
+    <!-- Tabs de vistas — derecha -->
+    <div class="nav-tabs">
+      <button class="vista-tab vista-tab--activa" data-vista="general">General</button>
+      <button class="vista-tab" data-vista="institucion">Instituci&oacute;n</button>
+      <button class="vista-tab" data-vista="rt">Responsable T&eacute;cnico</button>
+    </div>
   </nav>
 
   <div class="app-layout">
@@ -74,6 +87,18 @@
         </div>
       </div>
 
+      <!-- Charts sidebar — vista responsable técnico -->
+      <div class="sidebar-charts" id="sidebar-charts-rt" style="display:none">
+        <div>
+          <div class="sidebar-chart-label">Top responsables &mdash; proyectos</div>
+          <div id="chart-rt-ranking"></div>
+        </div>
+        <div>
+          <div class="sidebar-chart-label">Top responsables &mdash; monto</div>
+          <div id="chart-rt-monto"></div>
+        </div>
+      </div>
+
     </aside>
 
     <!-- ===== MAIN CONTENT ===== -->
@@ -99,11 +124,32 @@
         </div>
       </div>
 
+      <!-- Búsqueda de responsable técnico (solo visible en vista RT) -->
+      <div id="rt-search-section" style="display:none; margin-bottom:1.2rem">
+        <div class="inst-filters-row">
+          <div class="inst-search-wrap inst-filters-col--main">
+            <label class="inst-search-label">Buscar responsable t&eacute;cnico</label>
+            <div class="inst-search-box">
+              <input type="text" id="rt-search-input" class="inst-search-input"
+                     placeholder="Escribe para buscar..." autocomplete="off">
+              <ul id="rt-search-dropdown" class="inst-search-dropdown"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Encabezado contextual de institución seleccionada (oculto por defecto) -->
       <div id="inst-header" style="display:none">
         <span id="inst-nombre"></span>
         <span class="inst-badge" id="inst-badge"></span>
         <button class="inst-clear-btn" id="inst-clear">&#x2715; Limpiar selecci&oacute;n</button>
+      </div>
+
+      <!-- Encabezado contextual de RT seleccionado (oculto por defecto) -->
+      <div id="rt-header" style="display:none">
+        <span id="rt-nombre"></span>
+        <span class="inst-badge" id="rt-badge"></span>
+        <button class="inst-clear-btn" id="rt-clear">&#x2715; Limpiar selecci&oacute;n</button>
       </div>
 
       <h2 class="section-title" style="margin-top:0">Resumen</h2>
@@ -156,16 +202,10 @@
             <div id="chart-radar"></div>
           </div>
 
-          <!-- Vista institución: radar + timeline en fila (gestionado por chart-inst-row) -->
-          <div id="chart-inst-row" class="chart-inst-row" style="display:none">
-            <div id="chart-section-inst">
-              <h2 class="section-title">Campo de estudio</h2>
-              <div id="chart-radar-inst"></div>
-            </div>
-            <div id="inst-timeline-section">
-              <h2 class="section-title">Proyectos por a&ntilde;o</h2>
-              <div id="chart-inst-timeline"></div>
-            </div>
+          <!-- Vista institución: barras apiladas año × campo de estudio -->
+          <div id="chart-inst-row" style="display:none">
+            <h2 class="section-title">Proyectos por a&ntilde;o y campo de estudio</h2>
+            <div id="chart-inst-stacked"></div>
           </div>
 
         </div>
