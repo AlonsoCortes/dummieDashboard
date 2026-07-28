@@ -807,3 +807,184 @@ tbody tr:hover {
     height: auto;
   }
 }
+
+/* === Vista Mapa === */
+.mapa-subtabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.mapa-subtab {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--texto);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.3;
+}
+
+.mapa-subtab:hover {
+  border-color: var(--dorado);
+  background: color-mix(in srgb, var(--dorado) 8%, #fff);
+}
+
+.mapa-subtab--activa {
+  background: var(--guinda);
+  color: #fff;
+  border-color: var(--guinda);
+}
+
+.mapa-subtab--activa:hover {
+  background: color-mix(in srgb, var(--guinda) 85%, #000);
+  border-color: color-mix(in srgb, var(--guinda) 85%, #000);
+}
+
+.mapa-leyenda-bloque {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mapa-leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--texto);
+}
+
+.mapa-leyenda-rect {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+#mapa-section {
+  margin-top: 0.5rem;
+}
+
+#mapa-contenedor {
+  height: 560px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--gris-borde);
+}
+
+/* === Layout mapa: vista dividida (mapa izq + tabla der) === */
+.main-content--mapa {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  align-items: start;
+  padding: 0;
+}
+
+.main-content--mapa #mapa-section {
+  padding: 1rem;
+  margin-top: 0;
+}
+
+.main-content--mapa #mapa-contenedor {
+  height: calc(100vh - 94px - 2rem);
+  border-radius: 8px;
+  border: 1px solid var(--gris-borde);
+}
+
+.main-content--mapa .tabla-section {
+  padding: 1rem 1.2rem 1rem 0.5rem;
+}
+
+.main-content--mapa .tabla-container {
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+/* === Lista de proyectos — sub-vista incidencia === */
+#incidencia-lista {
+  margin-top: 0.8rem;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.incidencia-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.38rem 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.incidencia-item:hover {
+  background: rgba(157, 36, 73, 0.08);
+}
+
+.incidencia-item--activa {
+  background: rgba(157, 36, 73, 0.15);
+  font-weight: 600;
+}
+
+.incidencia-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.incidencia-titulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incidencia-badge {
+  font-size: 0.67rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #eee;
+  color: #555;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.incidencia-badge--alta {
+  background: var(--guinda);
+  color: #fff;
+}
+
+.incidencia-badge--media {
+  background: var(--dorado);
+  color: #fff;
+}
+
+.incidencia-volver-btn {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  background: none;
+  border: 1px solid var(--guinda);
+  color: var(--guinda);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
+.incidencia-volver-btn:hover {
+  background: rgba(157, 36, 73, 0.08);
+}

@@ -29,6 +29,8 @@
       <button class="vista-tab vista-tab--activa" data-vista="general">General</button>
       <button class="vista-tab" data-vista="institucion">Instituci&oacute;n</button>
       <button class="vista-tab" data-vista="rt">Responsable T&eacute;cnico</button>
+      <button class="vista-tab" data-vista="seguimiento">Seguimiento</button>
+      <button class="vista-tab" data-vista="mapa">Mapa</button>
     </div>
   </nav>
 
@@ -56,6 +58,18 @@
         <div class="filtro-group" id="filtro-inst-group">
           <label for="filtro-inst">Instituci&oacute;n</label>
           <select id="filtro-inst">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filtro-group" id="filtro-modalidad-group">
+          <label for="filtro-modalidad">Modalidad</label>
+          <select id="filtro-modalidad">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="filtro-group" id="filtro-alcaldia-group" style="display:none">
+          <label for="filtro-alcaldia">Alcald&iacute;a</label>
+          <select id="filtro-alcaldia">
             <option value="">Todas</option>
           </select>
         </div>
@@ -99,6 +113,35 @@
         </div>
       </div>
 
+      <!-- Charts sidebar — vista seguimiento -->
+      <div class="sidebar-charts" id="sidebar-charts-seguimiento" style="display:none">
+        <div>
+          <div class="sidebar-chart-label">&Aacute;reas &mdash; proyectos</div>
+          <div id="chart-area-ranking"></div>
+        </div>
+        <div>
+          <div class="sidebar-chart-label">Responsables de seguimiento</div>
+          <div id="chart-seguimiento-ranking"></div>
+        </div>
+      </div>
+
+      <!-- Controles sidebar — vista mapa -->
+      <div class="sidebar-charts" id="sidebar-charts-mapa" style="display:none">
+        <div class="mapa-subtabs">
+          <button class="mapa-subtab mapa-subtab--activa" data-subvista="instituciones">Instituciones</button>
+          <button class="mapa-subtab" data-subvista="incidencia">Incidencia territorial</button>
+        </div>
+        <!-- Lista de proyectos — solo visible en sub-vista incidencia -->
+        <div id="incidencia-lista" style="display:none">
+          <button id="incidencia-volver" class="incidencia-volver-btn" style="display:none">
+            &#8592; Todos los proyectos
+          </button>
+          <div id="incidencia-lista-items"></div>
+        </div>
+        <div id="mapa-leyenda"></div>
+        <div id="mapa-stats" class="sidebar-chart-label" style="margin-top:0.6rem"></div>
+      </div>
+
     </aside>
 
     <!-- ===== MAIN CONTENT ===== -->
@@ -138,6 +181,28 @@
         </div>
       </div>
 
+      <!-- Búsqueda de área y responsable de seguimiento (solo visible en vista Seguimiento) -->
+      <div id="seguimiento-search-section" style="display:none; margin-bottom:1.2rem">
+        <div class="inst-filters-row">
+          <div class="inst-search-wrap inst-filters-col--main">
+            <label class="inst-search-label">&Aacute;rea de captura</label>
+            <div class="inst-search-box">
+              <input type="text" id="area-search-input" class="inst-search-input"
+                     placeholder="Escribe para buscar..." autocomplete="off">
+              <ul id="area-search-dropdown" class="inst-search-dropdown"></ul>
+            </div>
+          </div>
+          <div class="inst-search-wrap inst-filters-col--unidad">
+            <label class="inst-search-label">Responsable seguimiento</label>
+            <div class="inst-search-box">
+              <input type="text" id="seg-person-search-input" class="inst-search-input"
+                     placeholder="Escribe para buscar..." autocomplete="off">
+              <ul id="seg-person-search-dropdown" class="inst-search-dropdown"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Encabezado contextual de institución seleccionada (oculto por defecto) -->
       <div id="inst-header" style="display:none">
         <span id="inst-nombre"></span>
@@ -152,6 +217,14 @@
         <button class="inst-clear-btn" id="rt-clear">&#x2715; Limpiar selecci&oacute;n</button>
       </div>
 
+      <!-- Encabezado contextual de seguimiento seleccionado (oculto por defecto) -->
+      <div id="seguimiento-header" style="display:none">
+        <span id="seguimiento-nombre"></span>
+        <span class="inst-badge" id="seguimiento-badge"></span>
+        <button class="inst-clear-btn" id="seguimiento-clear">&#x2715; Limpiar selecci&oacute;n</button>
+      </div>
+
+      <div id="resumen-wrapper">
       <h2 class="section-title" style="margin-top:0">Resumen</h2>
 
       <!-- KPIs + gráfica en una fila (compartidos entre vistas) -->
@@ -202,7 +275,7 @@
             <div id="chart-radar"></div>
           </div>
 
-          <!-- Vista institución: barras apiladas año × campo de estudio -->
+          <!-- Vista institución / RT / Seguimiento: barras apiladas año × campo de estudio -->
           <div id="chart-inst-row" style="display:none">
             <h2 class="section-title">Proyectos por a&ntilde;o y campo de estudio</h2>
             <div id="chart-inst-stacked"></div>
@@ -212,8 +285,15 @@
 
       </div><!-- /.resumen-top-row -->
 
+      </div><!-- /#resumen-wrapper -->
+
+      <!-- Vista Mapa -->
+      <div id="mapa-section" style="display:none">
+        <div id="mapa-contenedor" style="height:560px;border-radius:8px;overflow:hidden"></div>
+      </div>
+
       <!-- Tabla full width -->
-      <section class="tabla-section">
+      <section class="tabla-section" id="tabla-section-wrap">
         <h2 class="section-title">Proyectos</h2>
         <div class="tabla-container">
           <table>
@@ -226,6 +306,7 @@
                 <th>Unidad</th>
                 <th>Campo de estudio</th>
                 <th>Tipo de proyecto</th>
+                <th>Modalidad</th>
                 <th>Responsable T&eacute;cnico</th>
                 <th>A&ntilde;o</th>
                 <th>Monto total</th>
@@ -243,6 +324,9 @@
   <!-- D3.js y Observable Plot (globales, deben cargarse antes del módulo) -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6"></script>
+  <!-- Leaflet (mapa geoespacial) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9/dist/leaflet.js"></script>
   <!-- App v2 — ES modules -->
   <script type="module" src="js/main_v2.js"></script>
 </body>

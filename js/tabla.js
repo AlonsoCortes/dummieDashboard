@@ -17,6 +17,7 @@ const SORT_KEY = [
   d => d.unidad || "",
   d => d.campo || "",
   d => d.tipo || "",
+  d => d.modalidad || "",
   d => d.nombreRT || "",
   d => d.anio || "",
   d => d.monto || 0,
@@ -76,7 +77,9 @@ export function renderTabla(datos) {
       <td>${d.folio || "—"}</td>
       <td>${d.id || "—"}</td>
       <td>${label}</td>
-      <td>${d.institucion}</td>
+      <td>${d.modalidad === "Convocatoria ITESM-IPN"
+        ? `${d.institucion} <small style="color:#888;white-space:nowrap">(IPN-ITESM)</small>`
+        : d.institucion}</td>
       <td>${d.unidad || "—"}</td>
       <td>${d.campo
         ? `<span style="display:inline-flex;align-items:center;gap:0.35rem">
@@ -85,6 +88,7 @@ export function renderTabla(datos) {
            </span>`
         : "—"}</td>
       <td>${d.tipo || "—"}</td>
+      <td>${d.modalidad || "—"}</td>
       <td>${d.nombreRT || "—"}</td>
       <td>${d.anio || "—"}</td>
       <td style="text-align:right">${d.monto > 0 ? formatoMXN(d.monto) : "—"}</td>

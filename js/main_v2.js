@@ -1,12 +1,13 @@
 /* ============================================================
    main_v2.js — Punto de entrada del dashboard SECTEI v2
    Orquesta la carga de datos, filtros y renderizado.
-   Vistas: "general" | "institucion"
+   Vistas: "general" | "institucion" | "rt" | "seguimiento"
    ============================================================ */
 
 import { cargarDatos }                              from "./data.js";
 import { poblarFiltros, bindFiltros,
          datosFiltrados, datosFiltradosPorAnio,
+         datosFiltradosParaMonto,
          actualizarOpcionesInst, actualizarOpcionesUnidad } from "./filters.js";
 import { renderKPIs }                               from "./kpis.js";
 import { renderTabla, initTablaSort }               from "./tabla.js";
@@ -17,20 +18,29 @@ import { renderInstRanking }                        from "./charts/inst_ranking.
 import { renderInstMontoRanking }                   from "./charts/inst_monto.js";
 import { renderRTRanking }                          from "./charts/rt_ranking.js";
 import { renderRTMontoRanking }                     from "./charts/rt_monto.js";
+import { renderAreaRanking }                        from "./charts/area_ranking.js";
+import { renderSeguimientoRanking }                 from "./charts/seguimiento_ranking.js";
 import { renderInstTimelineStacked }                from "./charts/inst_timeline_stacked.js";
 import { initCustomSelect }                         from "./ui/customSelect.js";
+import { initMapa, actualizarMapa, invalidarTamano,
+         seleccionarProyectoIncidencia, limpiarSeleccionIncidencia,
+         getColorMap } from "./maps/mapa.js";
 
-let todosLosDatos    = [];
-let vistaActual      = "general";
-let instSeleccionada = null;
-let rtSeleccionado   = null;
+let todosLosDatos           = [];
+let vistaActual             = "general";
+let instSeleccionada        = null;
+let rtSeleccionado          = null;
+let areaSeleccionada        = null;
+let seguimientoSeleccionado = null;
+let geojsonCargado          = null;
+let mapaInicializado        = false;
+let mapaSubvista            = "instituciones";
 
 // ── Utilidades DOM ─────────────────────────────────────────
 function show(id) { const el = document.getElementById(id); if (el) el.style.display = ""; }
 function hide(id) { const el = document.getElementById(id); if (el) el.style.display = "none"; }
 
 // ── Filtro de unidad (dependiente de institución) ───────────
-// La visibilidad del grupo la maneja aplicarVista; aquí solo se repuebla.
 function syncUnidadFiltro(instActual) {
   actualizarOpcionesUnidad(todosLosDatos, instActual);
 }
@@ -146,10 +156,192 @@ function syncRTSearch() {
   if (input) input.value = rtSeleccionado || "";
 }
 
+// ── Búsqueda predictiva de área ─────────────────────────────
+function initAreaSearch() {
+  const input    = document.getElementById("area-search-input");
+  const dropdown = document.getElementById("area-search-dropdown");
+  if (!input || !dropdown) return;
+
+  function getAreas() {
+    const datos = datosFiltradosPorAnio(todosLosDatos);
+    return [...new Set(datos.map(d => d.areaCaptura).filter(Boolean))].sort();
+  }
+
+  function showDropdown(areas) {
+    dropdown.innerHTML = "";
+    if (!areas.length) { dropdown.style.display = "none"; return; }
+    areas.forEach(area => {
+      const li = document.createElement("li");
+      li.className = "inst-search-option";
+      li.textContent = area;
+      li.addEventListener("mousedown", e => {
+        e.preventDefault();
+        areaSeleccionada = area;
+        input.value = area;
+        dropdown.style.display = "none";
+        seguimientoSeleccionado = null;
+        syncSeguimientoPersonSearch();
+        actualizarSeguimiento();
+      });
+      dropdown.appendChild(li);
+    });
+    dropdown.style.display = "block";
+  }
+
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    const areas = getAreas();
+    showDropdown(q ? areas.filter(a => a.toLowerCase().includes(q)) : areas);
+  });
+
+  input.addEventListener("focus", () => {
+    const q = input.value.toLowerCase().trim();
+    const areas = getAreas();
+    showDropdown(q ? areas.filter(a => a.toLowerCase().includes(q)) : areas);
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => { dropdown.style.display = "none"; }, 150);
+  });
+}
+
+function syncAreaSearch() {
+  const input = document.getElementById("area-search-input");
+  if (input) input.value = areaSeleccionada || "";
+}
+
+// ── Búsqueda predictiva de responsable de seguimiento ───────
+function initSeguimientoPersonSearch() {
+  const input    = document.getElementById("seg-person-search-input");
+  const dropdown = document.getElementById("seg-person-search-dropdown");
+  if (!input || !dropdown) return;
+
+  function getPersonas() {
+    const datos = datosFiltradosPorAnio(todosLosDatos);
+    const base = areaSeleccionada
+      ? datos.filter(d => d.areaCaptura === areaSeleccionada)
+      : datos;
+    return [...new Set(base.map(d => d.seguimiento).filter(Boolean))].sort();
+  }
+
+  function showDropdown(personas) {
+    dropdown.innerHTML = "";
+    if (!personas.length) { dropdown.style.display = "none"; return; }
+    personas.forEach(p => {
+      const li = document.createElement("li");
+      li.className = "inst-search-option";
+      li.textContent = p;
+      li.addEventListener("mousedown", e => {
+        e.preventDefault();
+        seguimientoSeleccionado = p;
+        input.value = p;
+        dropdown.style.display = "none";
+        actualizarSeguimiento();
+      });
+      dropdown.appendChild(li);
+    });
+    dropdown.style.display = "block";
+  }
+
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    const personas = getPersonas();
+    showDropdown(q ? personas.filter(p => p.toLowerCase().includes(q)) : personas);
+  });
+
+  input.addEventListener("focus", () => {
+    const q = input.value.toLowerCase().trim();
+    const personas = getPersonas();
+    showDropdown(q ? personas.filter(p => p.toLowerCase().includes(q)) : personas);
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => { dropdown.style.display = "none"; }, 150);
+  });
+}
+
+function syncSeguimientoPersonSearch() {
+  const input = document.getElementById("seg-person-search-input");
+  if (input) input.value = seguimientoSeleccionado || "";
+}
+
+// ── Vista Mapa ──────────────────────────────────────────────
+function poblarFiltroAlcaldia(todos) {
+  const sel = document.getElementById("filtro-alcaldia");
+  if (!sel || sel.options.length > 1) return;
+  const alcaldias = [...new Set(todos.map(d => d.alcaldia).filter(Boolean))].sort();
+  alcaldias.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a; opt.textContent = a;
+    sel.appendChild(opt);
+  });
+}
+
+function poblarListaIncidencia(geojsonFeatures, datos) {
+  const container = document.getElementById("incidencia-lista-items");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const idMap      = new Map(datos.map(d => [String(d.id), d]));
+  const idsEnDatos = new Set(datos.map(d => String(d.id)));
+  const colores    = getColorMap();
+
+  const features = geojsonFeatures.filter(f => idsEnDatos.has(String(f.properties.id_proyecto)));
+
+  if (features.length === 0) {
+    container.innerHTML = '<p style="font-size:0.78rem;color:#999;padding:0.4rem 0.5rem">Sin proyectos para el año seleccionado.</p>';
+    return;
+  }
+
+  features.forEach(f => {
+    const id    = String(f.properties.id_proyecto);
+    const proj  = idMap.get(id);
+    const titulo = proj ? (proj.titulo || proj.acronimo || `Proyecto ${id}`) : `Proyecto ${id}`;
+    const color = colores.get(id) || "#888";
+    const nivel = f.properties.posible_incidencia || "";
+    const esAlta = nivel === "Alta";
+
+    const item = document.createElement("div");
+    item.className = "incidencia-item";
+    item.dataset.id = id;
+    item.innerHTML = `
+      <span class="incidencia-swatch" style="background:${color}"></span>
+      <span class="incidencia-titulo" title="${titulo}">${titulo}</span>
+      <span class="incidencia-badge ${esAlta ? "incidencia-badge--alta" : "incidencia-badge--media"}">${nivel}</span>
+    `;
+    item.addEventListener("click", () => seleccionarProyectoIncidencia(id));
+    container.appendChild(item);
+  });
+}
+
+async function actualizarMapaVista() {
+  const alcaldia = document.getElementById("filtro-alcaldia")?.value || "";
+  let datos = datosFiltradosPorAnio(todosLosDatos);
+  if (alcaldia) datos = datos.filter(d => d.alcaldia === alcaldia);
+
+  if (!geojsonCargado) {
+    geojsonCargado = await d3.json("datos/proyectos_geometrias.geojson");
+  }
+
+  if (!mapaInicializado) {
+    initMapa(datos, geojsonCargado, mapaSubvista, alcaldia);
+    mapaInicializado = true;
+  } else {
+    actualizarMapa(datos, mapaSubvista, alcaldia, geojsonCargado);
+  }
+  invalidarTamano();
+  renderTabla(datos);
+
+  if (mapaSubvista === "incidencia") {
+    poblarListaIncidencia(geojsonCargado.features, datos);
+  }
+}
+
 // ── Vista General ───────────────────────────────────────────
 function actualizar() {
-  const datos = datosFiltrados(todosLosDatos);
-  renderKPIs(datos);
+  const datos       = datosFiltrados(todosLosDatos);
+  const datosMonto  = datosFiltradosParaMonto(todosLosDatos);
+  renderKPIs(datos, datosMonto);
   const unidadesCard = document.getElementById("kpi-unidades-card");
   if (unidadesCard) unidadesCard.style.display = "none";
   renderChartRadar(datos, "chart-radar");
@@ -162,7 +354,6 @@ function actualizarInst() {
 
   syncInstSearch();
 
-  // Sidebar: rankings (siempre visibles en esta vista)
   renderInstRanking(datosPorAnio, instSeleccionada, sel => {
     instSeleccionada = sel;
     actualizarInst();
@@ -172,7 +363,6 @@ function actualizarInst() {
     actualizarInst();
   });
 
-  // Filtro unidad: solo relevante cuando hay institución seleccionada
   syncUnidadFiltro(instSeleccionada);
 
   const unidad = document.getElementById("filtro-unidad")?.value || "";
@@ -215,7 +405,6 @@ function actualizarRT() {
 
   syncRTSearch();
 
-  // Sidebar: rankings sin filtro de año (universo completo)
   renderRTRanking(todosLosDatos, rtSeleccionado, sel => {
     rtSeleccionado = sel;
     actualizarRT();
@@ -225,7 +414,6 @@ function actualizarRT() {
     actualizarRT();
   });
 
-  // Panel principal: respeta el filtro de año
   const datosRT = rtSeleccionado
     ? datosPorAnio.filter(d => d.nombreRT === rtSeleccionado)
     : datosPorAnio;
@@ -249,13 +437,58 @@ function actualizarRT() {
   }
 }
 
+// ── Vista Seguimiento ───────────────────────────────────────
+function actualizarSeguimiento() {
+  const datosPorAnio = datosFiltradosPorAnio(todosLosDatos);
+
+  syncAreaSearch();
+  syncSeguimientoPersonSearch();
+
+  // Sidebar usa universo completo (sin filtro de año)
+  renderAreaRanking(todosLosDatos, areaSeleccionada, sel => {
+    areaSeleccionada = sel;
+    seguimientoSeleccionado = null;
+    syncSeguimientoPersonSearch();
+    actualizarSeguimiento();
+  });
+  renderSeguimientoRanking(todosLosDatos, seguimientoSeleccionado, sel => {
+    seguimientoSeleccionado = sel;
+    actualizarSeguimiento();
+  });
+
+  // Panel principal: respeta filtro de año + área + responsable
+  let datosSeg = datosPorAnio;
+  if (areaSeleccionada)        datosSeg = datosSeg.filter(d => d.areaCaptura === areaSeleccionada);
+  if (seguimientoSeleccionado) datosSeg = datosSeg.filter(d => d.seguimiento === seguimientoSeleccionado);
+
+  renderKPIs(datosSeg);
+  const unidadesCard = document.getElementById("kpi-unidades-card");
+  if (unidadesCard) unidadesCard.style.display = "none";
+  renderTabla(datosSeg);
+
+  hide("chart-section-general");
+  show("chart-inst-row");
+  renderInstTimelineStacked(datosSeg);
+
+  if (areaSeleccionada || seguimientoSeleccionado) {
+    show("seguimiento-header");
+    const partes = [areaSeleccionada, seguimientoSeleccionado].filter(Boolean);
+    document.getElementById("seguimiento-nombre").textContent = partes.join(" — ");
+    document.getElementById("seguimiento-badge").textContent =
+      `${datosSeg.length} proyecto${datosSeg.length !== 1 ? "s" : ""}`;
+  } else {
+    hide("seguimiento-header");
+  }
+}
+
 // ── Cambio de vista ─────────────────────────────────────────
 function aplicarVista(vista) {
   vistaActual = vista;
   instSeleccionada = null;
   rtSeleccionado = null;
+  areaSeleccionada = null;
+  seguimientoSeleccionado = null;
 
-  // Reset completo — cada vista arranca sin filtros del tab anterior
   document.getElementById("filtro-year").value = "";
   const selInst = document.getElementById("filtro-inst");
   selInst.value = "";
@@ -268,47 +501,125 @@ function aplicarVista(vista) {
   });
 
   const resumenRow = document.querySelector(".resumen-top-row");
+  const mainContent = document.querySelector(".main-content");
+  mainContent.classList.toggle("main-content--mapa", vistaActual === "mapa");
+  if (vistaActual === "mapa") setTimeout(() => invalidarTamano(), 300);
 
   if (vistaActual === "general") {
     resumenRow.classList.remove("resumen-top-row--inst");
     show("filtro-inst-group");
+    show("filtro-modalidad-group");
+    hide("filtro-alcaldia-group");
     show("sidebar-charts-general");
     hide("sidebar-charts-inst");
+    hide("sidebar-charts-rt");
+    hide("sidebar-charts-seguimiento");
+    hide("sidebar-charts-mapa");
 
     hide("inst-search-section");
     hide("inst-header");
     hide("rt-search-section");
     hide("rt-header");
+    hide("seguimiento-search-section");
+    hide("seguimiento-header");
     show("chart-section-general");
     hide("chart-inst-row");
+    hide("mapa-section");
+    show("resumen-wrapper");
+    show("tabla-section-wrap");
 
     actualizar();
   } else if (vistaActual === "institucion") {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
+    show("filtro-modalidad-group");
+    hide("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     show("sidebar-charts-inst");
     hide("sidebar-charts-rt");
+    hide("sidebar-charts-seguimiento");
+    hide("sidebar-charts-mapa");
 
     show("inst-search-section");
     hide("rt-search-section");
     hide("rt-header");
+    hide("seguimiento-search-section");
+    hide("seguimiento-header");
+    hide("mapa-section");
+    show("resumen-wrapper");
+    show("tabla-section-wrap");
     syncInstSearch();
 
     actualizarInst();
   } else if (vistaActual === "rt") {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
+    show("filtro-modalidad-group");
+    hide("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     show("sidebar-charts-rt");
+    hide("sidebar-charts-seguimiento");
+    hide("sidebar-charts-mapa");
 
     hide("inst-search-section");
     hide("inst-header");
     show("rt-search-section");
+    hide("seguimiento-search-section");
+    hide("seguimiento-header");
+    hide("mapa-section");
+    show("resumen-wrapper");
+    show("tabla-section-wrap");
     syncRTSearch();
 
     actualizarRT();
+  } else if (vistaActual === "seguimiento") {
+    resumenRow.classList.add("resumen-top-row--inst");
+    hide("filtro-inst-group");
+    show("filtro-modalidad-group");
+    hide("filtro-alcaldia-group");
+    hide("sidebar-charts-general");
+    hide("sidebar-charts-inst");
+    hide("sidebar-charts-rt");
+    show("sidebar-charts-seguimiento");
+    hide("sidebar-charts-mapa");
+
+    hide("inst-search-section");
+    hide("inst-header");
+    hide("rt-search-section");
+    hide("rt-header");
+    show("seguimiento-search-section");
+    hide("mapa-section");
+    show("resumen-wrapper");
+    show("tabla-section-wrap");
+    syncAreaSearch();
+    syncSeguimientoPersonSearch();
+
+    actualizarSeguimiento();
+  } else if (vistaActual === "mapa") {
+    resumenRow.classList.remove("resumen-top-row--inst");
+    hide("filtro-inst-group");
+    hide("filtro-modalidad-group");
+    show("filtro-alcaldia-group");
+    hide("sidebar-charts-general");
+    hide("sidebar-charts-inst");
+    hide("sidebar-charts-rt");
+    hide("sidebar-charts-seguimiento");
+    show("sidebar-charts-mapa");
+
+    hide("inst-search-section");  hide("inst-header");
+    hide("rt-search-section");    hide("rt-header");
+    hide("seguimiento-search-section"); hide("seguimiento-header");
+    hide("chart-section-general");
+    hide("chart-inst-row");
+    hide("resumen-wrapper");
+    show("mapa-section");
+    show("tabla-section-wrap");
+
+    poblarFiltroAlcaldia(todosLosDatos);
+    const listaEl = document.getElementById("incidencia-lista");
+    if (listaEl) listaEl.style.display = mapaSubvista === "incidencia" ? "" : "none";
+    actualizarMapaVista();
   }
 }
 
@@ -321,16 +632,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     initTablaSort();
     initInstSearch();
     initRTSearch();
+    initAreaSearch();
+    initSeguimientoPersonSearch();
 
-    // Filtros: callback view-aware
     bindFiltros(
       () => todosLosDatos,
-      () => vistaActual === "institucion" ? actualizarInst()
-           : vistaActual === "rt"         ? actualizarRT()
+      () => vistaActual === "institucion"  ? actualizarInst()
+           : vistaActual === "rt"          ? actualizarRT()
+           : vistaActual === "seguimiento" ? actualizarSeguimiento()
+           : vistaActual === "mapa"        ? (limpiarSeleccionIncidencia(), actualizarMapaVista())
            : actualizar()
     );
 
-    // Sincronizar filtro unidad cuando cambia año o institución en vista general
     document.getElementById("filtro-year").addEventListener("change", () => {
       if (vistaActual === "general") {
         syncUnidadFiltro(document.getElementById("filtro-inst").value);
@@ -342,12 +655,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
-    // Tabs de navegación
     document.querySelectorAll(".vista-tab:not(.vista-tab--disabled)").forEach(btn => {
       btn.addEventListener("click", () => aplicarVista(btn.dataset.vista));
     });
 
-    // Botón "Limpiar selección" en inst-header
     document.getElementById("inst-clear").addEventListener("click", () => {
       instSeleccionada = null;
       syncInstSearch();
@@ -355,18 +666,71 @@ document.addEventListener("DOMContentLoaded", async () => {
       actualizarInst();
     });
 
-    // Botón "Limpiar selección" en rt-header
     document.getElementById("rt-clear").addEventListener("click", () => {
       rtSeleccionado = null;
       syncRTSearch();
       actualizarRT();
     });
 
-    // Charts globales (solo vista general, se renderizan una vez)
-    renderChartTendencia(todosLosDatos);
+    document.getElementById("seguimiento-clear").addEventListener("click", () => {
+      areaSeleccionada = null;
+      seguimientoSeleccionado = null;
+      syncAreaSearch();
+      syncSeguimientoPersonSearch();
+      actualizarSeguimiento();
+    });
+
+    document.getElementById("filtro-alcaldia")
+      ?.addEventListener("change", () => { if (vistaActual === "mapa") actualizarMapaVista(); });
+
+    document.querySelectorAll(".mapa-subtab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mapa-subtab").forEach(b => b.classList.remove("mapa-subtab--activa"));
+        btn.classList.add("mapa-subtab--activa");
+        mapaSubvista = btn.dataset.subvista;
+        if (vistaActual === "mapa") {
+          // Mostrar/ocultar lista de incidencia según sub-vista
+          const lista = document.getElementById("incidencia-lista");
+          if (lista) lista.style.display = mapaSubvista === "incidencia" ? "" : "none";
+          // Limpiar selección al cambiar de sub-vista
+          limpiarSeleccionIncidencia();
+          actualizarMapaVista();
+        }
+      });
+    });
+
+    document.getElementById("incidencia-volver")
+      ?.addEventListener("click", () => {
+        limpiarSeleccionIncidencia();
+        if (geojsonCargado) {
+          const datos = datosFiltradosPorAnio(todosLosDatos);
+          poblarListaIncidencia(geojsonCargado.features, datos);
+        }
+      });
+
+    document.addEventListener("mapaProyectoSeleccionado", e => {
+      const id = e.detail;
+      document.querySelectorAll(".incidencia-item").forEach(el => {
+        el.classList.toggle("incidencia-item--activa", el.dataset.id === String(id));
+      });
+      const btn = document.getElementById("incidencia-volver");
+      if (btn) btn.style.display = id ? "" : "none";
+
+      // Filtrar tabla al proyecto seleccionado, o restaurar datos completos
+      const alcaldia = document.getElementById("filtro-alcaldia")?.value || "";
+      let datosMapa = datosFiltradosPorAnio(todosLosDatos);
+      if (alcaldia) datosMapa = datosMapa.filter(d => d.alcaldia === alcaldia);
+      if (id) {
+        renderTabla(datosMapa.filter(d => String(d.id) === String(id)));
+      } else {
+        renderTabla(datosMapa);
+      }
+    });
+
+    const datosBase = todosLosDatos.filter(d => !d._itesmDup);
+    renderChartTendencia(datosBase);
     renderChartMontoAnio(todosLosDatos);
 
-    // Render inicial
     actualizar();
   } catch (err) {
     console.error("Error al cargar datos:", err);

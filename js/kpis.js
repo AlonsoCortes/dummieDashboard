@@ -2,9 +2,11 @@
    kpis.js — Tarjetas de indicadores clave
    ============================================================ */
 
-export function renderKPIs(datos) {
-  const conMonto    = datos.filter(d => d.monto > 0);
-  const montoTotal  = datos.reduce((s, d) => s + d.monto, 0);
+// datosParaMonto: dataset para calcular montos (puede incluir filas _itesmDup
+// cuyo monto es real). Si se omite, se usa el mismo array que para conteos.
+export function renderKPIs(datos, datosParaMonto = datos) {
+  const conMonto    = datosParaMonto.filter(d => d.monto > 0);
+  const montoTotal  = datosParaMonto.reduce((s, d) => s + d.monto, 0);
   const numProyectos    = datos.length;
   const numInstituciones = new Set(datos.map(d => d.institucion)).size;
   const promedio = conMonto.length ? montoTotal / conMonto.length : 0;
