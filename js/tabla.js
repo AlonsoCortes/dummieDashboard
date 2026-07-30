@@ -5,9 +5,13 @@
 import { formatoMXN } from "./kpis.js";
 import { CAMPO_COLORS } from "./config.js";
 
-let sortCol = null;
-let sortDir = "asc";
-let lastDatos = [];
+let sortCol      = null;
+let sortDir      = "asc";
+let lastDatos    = [];
+let _onRowClick  = null;
+
+export function setRowClickHandler(fn) { _onRowClick = fn; }
+export function clearRowClickHandler() { _onRowClick = null; }
 
 const SORT_KEY = [
   d => d.folio || "",
@@ -93,6 +97,10 @@ export function renderTabla(datos) {
       <td>${d.anio || "—"}</td>
       <td style="text-align:right">${d.monto > 0 ? formatoMXN(d.monto) : "—"}</td>
     `;
+    if (_onRowClick) {
+      tr.classList.add("tr--clickable");
+      tr.addEventListener("click", () => _onRowClick(d));
+    }
     tbody.appendChild(tr);
   });
 }

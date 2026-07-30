@@ -9,9 +9,10 @@ function listaInstituciones(datos) {
 }
 
 export function poblarFiltros(datos) {
-  const anios = [...new Set(datos.map(d => d.anio).filter(Boolean))].sort();
-  const insts = listaInstituciones(datos);
+  const anios      = [...new Set(datos.map(d => d.anio).filter(Boolean))].sort();
+  const insts      = listaInstituciones(datos);
   const modalidades = [...new Set(datos.map(d => d.modalidad).filter(Boolean))].sort();
+  const alcaldias  = [...new Set(datos.map(d => d.alcaldia).filter(Boolean))].sort();
 
   const selYear = document.getElementById("filtro-year");
   anios.forEach(a => {
@@ -38,6 +39,16 @@ export function poblarFiltros(datos) {
       selMod.appendChild(opt);
     });
   }
+
+  const selAlc = document.getElementById("filtro-alcaldia");
+  if (selAlc) {
+    alcaldias.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a;
+      opt.textContent = a;
+      selAlc.appendChild(opt);
+    });
+  }
 }
 
 // getTodos: función que devuelve el array completo (para el filtro encadenado)
@@ -50,6 +61,7 @@ export function bindFiltros(getTodos, onCambio) {
   document.getElementById("filtro-inst").addEventListener("change", onCambio);
   document.getElementById("filtro-unidad")?.addEventListener("change", onCambio);
   document.getElementById("filtro-modalidad")?.addEventListener("change", onCambio);
+  document.getElementById("filtro-alcaldia")?.addEventListener("change", onCambio);
 }
 
 // Repuebla el select de institución según el año seleccionado
@@ -118,11 +130,13 @@ export function datosFiltradosParaMonto(todos) {
   const inst      = document.getElementById("filtro-inst").value;
   const unidad    = document.getElementById("filtro-unidad")?.value || "";
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
+  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
     if (anio      && d.anio        !== anio)      return false;
     if (inst      && d.institucion !== inst)      return false;
     if (unidad    && d.unidad      !== unidad)    return false;
     if (modalidad && d.modalidad   !== modalidad) return false;
+    if (alcaldia  && d.alcaldia    !== alcaldia)  return false;
     return true;
   });
 }
@@ -132,12 +146,14 @@ export function datosFiltrados(todos) {
   const inst      = document.getElementById("filtro-inst").value;
   const unidad    = document.getElementById("filtro-unidad")?.value || "";
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
+  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
     if (!inst && d._itesmDup) return false;
     if (anio      && d.anio        !== anio)      return false;
     if (inst      && d.institucion !== inst)      return false;
     if (unidad    && d.unidad      !== unidad)    return false;
     if (modalidad && d.modalidad   !== modalidad) return false;
+    if (alcaldia  && d.alcaldia    !== alcaldia)  return false;
     return true;
   });
 }
@@ -145,10 +161,12 @@ export function datosFiltrados(todos) {
 export function datosFiltradosPorAnio(todos) {
   const anio      = document.getElementById("filtro-year").value;
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
+  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
     if (d._itesmDup) return false;
     if (anio      && d.anio      !== anio)      return false;
     if (modalidad && d.modalidad !== modalidad) return false;
+    if (alcaldia  && d.alcaldia  !== alcaldia)  return false;
     return true;
   });
 }

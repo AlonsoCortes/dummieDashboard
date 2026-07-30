@@ -67,8 +67,8 @@
             <option value="">Todas</option>
           </select>
         </div>
-        <div class="filtro-group" id="filtro-alcaldia-group" style="display:none">
-          <label for="filtro-alcaldia">Alcald&iacute;a</label>
+        <div class="filtro-group" id="filtro-alcaldia-group">
+          <label for="filtro-alcaldia">Alcald&iacute;a/Municipio</label>
           <select id="filtro-alcaldia">
             <option value="">Todas</option>
           </select>
@@ -127,17 +127,9 @@
 
       <!-- Controles sidebar — vista mapa -->
       <div class="sidebar-charts" id="sidebar-charts-mapa" style="display:none">
-        <div class="mapa-subtabs">
-          <button class="mapa-subtab mapa-subtab--activa" data-subvista="instituciones">Instituciones</button>
-          <button class="mapa-subtab" data-subvista="incidencia">Incidencia territorial</button>
-        </div>
-        <!-- Lista de proyectos — solo visible en sub-vista incidencia -->
-        <div id="incidencia-lista" style="display:none">
-          <button id="incidencia-volver" class="incidencia-volver-btn" style="display:none">
-            &#8592; Todos los proyectos
-          </button>
-          <div id="incidencia-lista-items"></div>
-        </div>
+        <button id="incidencia-volver" class="incidencia-volver-btn" style="display:none">
+          &#8592; Todos los proyectos
+        </button>
         <div id="mapa-leyenda"></div>
         <div id="mapa-stats" class="sidebar-chart-label" style="margin-top:0.6rem"></div>
       </div>
@@ -289,7 +281,10 @@
 
       <!-- Vista Mapa -->
       <div id="mapa-section" style="display:none">
-        <div id="mapa-contenedor" style="height:560px;border-radius:8px;overflow:hidden"></div>
+        <div id="mapa-contenedor"></div>
+        <button id="mapa-volver-todos" class="mapa-volver-overlay" style="display:none">
+          &#8592; Todos los proyectos
+        </button>
       </div>
 
       <!-- Tabla full width -->

@@ -10,7 +10,8 @@ import { poblarFiltros, bindFiltros,
          datosFiltradosParaMonto,
          actualizarOpcionesInst, actualizarOpcionesUnidad } from "./filters.js";
 import { renderKPIs }                               from "./kpis.js";
-import { renderTabla, initTablaSort }               from "./tabla.js";
+import { renderTabla, initTablaSort,
+         setRowClickHandler, clearRowClickHandler }  from "./tabla.js";
 import { renderChartTendencia }                     from "./charts/tendencia.js";
 import { renderChartMontoAnio }                     from "./charts/monto.js";
 import { renderChartRadar }                         from "./charts/radar.js";
@@ -24,7 +25,7 @@ import { renderInstTimelineStacked }                from "./charts/inst_timeline
 import { initCustomSelect }                         from "./ui/customSelect.js";
 import { initMapa, actualizarMapa, invalidarTamano,
          seleccionarProyectoIncidencia, limpiarSeleccionIncidencia,
-         getColorMap } from "./maps/mapa.js";
+         getColorMap, getLabelPorCapa } from "./maps/mapa.js";
 
 let todosLosDatos           = [];
 let vistaActual             = "general";
@@ -34,7 +35,6 @@ let areaSeleccionada        = null;
 let seguimientoSeleccionado = null;
 let geojsonCargado          = null;
 let mapaInicializado        = false;
-let mapaSubvista            = "instituciones";
 
 // ── Utilidades DOM ─────────────────────────────────────────
 function show(id) { const el = document.getElementById(id); if (el) el.style.display = ""; }
@@ -49,6 +49,7 @@ function resetUnidadFiltro() {
   const sel = document.getElementById("filtro-unidad");
   if (sel) { sel.value = ""; sel.innerHTML = '<option value="">Todas</option>'; }
 }
+
 
 // ── Búsqueda predictiva de institución ─────────────────────
 function initInstSearch() {
@@ -266,17 +267,6 @@ function syncSeguimientoPersonSearch() {
 }
 
 // ── Vista Mapa ──────────────────────────────────────────────
-function poblarFiltroAlcaldia(todos) {
-  const sel = document.getElementById("filtro-alcaldia");
-  if (!sel || sel.options.length > 1) return;
-  const alcaldias = [...new Set(todos.map(d => d.alcaldia).filter(Boolean))].sort();
-  alcaldias.forEach(a => {
-    const opt = document.createElement("option");
-    opt.value = a; opt.textContent = a;
-    sel.appendChild(opt);
-  });
-}
-
 function poblarListaIncidencia(geojsonFeatures, datos) {
   const container = document.getElementById("incidencia-lista-items");
   if (!container) return;
@@ -286,7 +276,7 @@ function poblarListaIncidencia(geojsonFeatures, datos) {
   const idsEnDatos = new Set(datos.map(d => String(d.id)));
   const colores    = getColorMap();
 
-  const features = geojsonFeatures.filter(f => idsEnDatos.has(String(f.properties.id_proyecto)));
+  const features = geojsonFeatures.filter(f => idsEnDatos.has(String(f.properties.ID)));
 
   if (features.length === 0) {
     container.innerHTML = '<p style="font-size:0.78rem;color:#999;padding:0.4rem 0.5rem">Sin proyectos para el año seleccionado.</p>';
@@ -294,12 +284,11 @@ function poblarListaIncidencia(geojsonFeatures, datos) {
   }
 
   features.forEach(f => {
-    const id    = String(f.properties.id_proyecto);
+    const id    = String(f.properties.ID);
     const proj  = idMap.get(id);
     const titulo = proj ? (proj.titulo || proj.acronimo || `Proyecto ${id}`) : `Proyecto ${id}`;
     const color = colores.get(id) || "#888";
-    const nivel = f.properties.posible_incidencia || "";
-    const esAlta = nivel === "Alta";
+    const capas = f.properties.capas_geometria || "";
 
     const item = document.createElement("div");
     item.className = "incidencia-item";
@@ -307,7 +296,7 @@ function poblarListaIncidencia(geojsonFeatures, datos) {
     item.innerHTML = `
       <span class="incidencia-swatch" style="background:${color}"></span>
       <span class="incidencia-titulo" title="${titulo}">${titulo}</span>
-      <span class="incidencia-badge ${esAlta ? "incidencia-badge--alta" : "incidencia-badge--media"}">${nivel}</span>
+      <span class="incidencia-badge" style="background:${color};color:#fff">${getLabelPorCapa(capas)}</span>
     `;
     item.addEventListener("click", () => seleccionarProyectoIncidencia(id));
     container.appendChild(item);
@@ -315,26 +304,22 @@ function poblarListaIncidencia(geojsonFeatures, datos) {
 }
 
 async function actualizarMapaVista() {
-  const alcaldia = document.getElementById("filtro-alcaldia")?.value || "";
-  let datos = datosFiltradosPorAnio(todosLosDatos);
-  if (alcaldia) datos = datos.filter(d => d.alcaldia === alcaldia);
+  const datos = datosFiltradosPorAnio(todosLosDatos);
 
   if (!geojsonCargado) {
     geojsonCargado = await d3.json("datos/proyectos_geometrias.geojson");
   }
 
   if (!mapaInicializado) {
-    initMapa(datos, geojsonCargado, mapaSubvista, alcaldia);
+    initMapa(datos, geojsonCargado);
     mapaInicializado = true;
   } else {
-    actualizarMapa(datos, mapaSubvista, alcaldia, geojsonCargado);
+    actualizarMapa(datos, geojsonCargado);
   }
   invalidarTamano();
-  renderTabla(datos);
 
-  if (mapaSubvista === "incidencia") {
-    poblarListaIncidencia(geojsonCargado.features, datos);
-  }
+  const idsConGeojson = new Set(geojsonCargado.features.map(f => String(f.properties.ID)));
+  renderTabla(datos.filter(d => idsConGeojson.has(String(d.id))));
 }
 
 // ── Vista General ───────────────────────────────────────────
@@ -503,13 +488,22 @@ function aplicarVista(vista) {
   const resumenRow = document.querySelector(".resumen-top-row");
   const mainContent = document.querySelector(".main-content");
   mainContent.classList.toggle("main-content--mapa", vistaActual === "mapa");
-  if (vistaActual === "mapa") setTimeout(() => invalidarTamano(), 300);
+  if (vistaActual === "mapa") {
+    setTimeout(() => invalidarTamano(), 300);
+    setRowClickHandler(d => {
+      if (!geojsonCargado) return;
+      const hasGeom = geojsonCargado.features.some(f => String(f.properties.ID) === String(d.id));
+      if (hasGeom) seleccionarProyectoIncidencia(String(d.id));
+    });
+  } else {
+    clearRowClickHandler();
+  }
 
   if (vistaActual === "general") {
     resumenRow.classList.remove("resumen-top-row--inst");
     show("filtro-inst-group");
     show("filtro-modalidad-group");
-    hide("filtro-alcaldia-group");
+    show("filtro-alcaldia-group");
     show("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -533,7 +527,7 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    hide("filtro-alcaldia-group");
+    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     show("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -555,7 +549,7 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    hide("filtro-alcaldia-group");
+    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     show("sidebar-charts-rt");
@@ -577,7 +571,7 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    hide("filtro-alcaldia-group");
+    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -600,7 +594,7 @@ function aplicarVista(vista) {
     resumenRow.classList.remove("resumen-top-row--inst");
     hide("filtro-inst-group");
     hide("filtro-modalidad-group");
-    show("filtro-alcaldia-group");
+    hide("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -616,9 +610,6 @@ function aplicarVista(vista) {
     show("mapa-section");
     show("tabla-section-wrap");
 
-    poblarFiltroAlcaldia(todosLosDatos);
-    const listaEl = document.getElementById("incidencia-lista");
-    if (listaEl) listaEl.style.display = mapaSubvista === "incidencia" ? "" : "none";
     actualizarMapaVista();
   }
 }
@@ -680,48 +671,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       actualizarSeguimiento();
     });
 
-    document.getElementById("filtro-alcaldia")
-      ?.addEventListener("change", () => { if (vistaActual === "mapa") actualizarMapaVista(); });
-
-    document.querySelectorAll(".mapa-subtab").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".mapa-subtab").forEach(b => b.classList.remove("mapa-subtab--activa"));
-        btn.classList.add("mapa-subtab--activa");
-        mapaSubvista = btn.dataset.subvista;
-        if (vistaActual === "mapa") {
-          // Mostrar/ocultar lista de incidencia según sub-vista
-          const lista = document.getElementById("incidencia-lista");
-          if (lista) lista.style.display = mapaSubvista === "incidencia" ? "" : "none";
-          // Limpiar selección al cambiar de sub-vista
-          limpiarSeleccionIncidencia();
-          actualizarMapaVista();
-        }
-      });
-    });
-
     document.getElementById("incidencia-volver")
-      ?.addEventListener("click", () => {
-        limpiarSeleccionIncidencia();
-        if (geojsonCargado) {
-          const datos = datosFiltradosPorAnio(todosLosDatos);
-          poblarListaIncidencia(geojsonCargado.features, datos);
-        }
-      });
+      ?.addEventListener("click", () => limpiarSeleccionIncidencia());
+
+    document.getElementById("mapa-volver-todos")
+      ?.addEventListener("click", () => limpiarSeleccionIncidencia());
 
     document.addEventListener("mapaProyectoSeleccionado", e => {
       const id = e.detail;
-      document.querySelectorAll(".incidencia-item").forEach(el => {
-        el.classList.toggle("incidencia-item--activa", el.dataset.id === String(id));
-      });
-      const btn = document.getElementById("incidencia-volver");
-      if (btn) btn.style.display = id ? "" : "none";
+      const btn    = document.getElementById("incidencia-volver");
+      const btnMap = document.getElementById("mapa-volver-todos");
+      if (btn)    btn.style.display    = id ? "" : "none";
+      if (btnMap) btnMap.style.display = id ? "" : "none";
 
-      // Filtrar tabla al proyecto seleccionado, o restaurar datos completos
-      const alcaldia = document.getElementById("filtro-alcaldia")?.value || "";
-      let datosMapa = datosFiltradosPorAnio(todosLosDatos);
-      if (alcaldia) datosMapa = datosMapa.filter(d => d.alcaldia === alcaldia);
+      const datosMapa = datosFiltradosPorAnio(todosLosDatos);
       if (id) {
         renderTabla(datosMapa.filter(d => String(d.id) === String(id)));
+      } else if (geojsonCargado) {
+        const idsConGeojson = new Set(geojsonCargado.features.map(f => String(f.properties.ID)));
+        renderTabla(datosMapa.filter(d => idsConGeojson.has(String(d.id))));
       } else {
         renderTabla(datosMapa);
       }

@@ -1,34 +1,39 @@
 /* ============================================================
    maps/mapa.js — Vista geoespacial del dashboard SECTEI
-   Sub-vistas: "instituciones" (puntos WKT) | "incidencia" (GeoJSON)
-   Incidencia: overview (29 centroides) → detalle (geometría completa)
+   Incidencia territorial: overview (centroides) → detalle (geometría completa)
    ============================================================ */
 
-import { DORADO } from "../config.js";
-import { parseWKTPoint } from "../data.js";
-import { formatoMXN }   from "../kpis.js";
+// ── Paleta temática por capa de incidencia ───────────────────
+// color afín al tipo de lugar; label en español para la leyenda
+const CATEGORIAS_CAPA = {
+  "alcaldias":                   { color: "#B03A2E", label: "Alcaldía"              },
+  "colonias":                    { color: "#CA6F1E", label: "Colonia"               },
+  "p":                           { color: "#1A5276", label: "Sitio específico"      },
+  "microcuencas":                { color: "#117A65", label: "Microcuenca"           },
+  "sedema_suelo_conservacion":   { color: "#1E8449", label: "Suelo de conservación" },
+  "spc_zonificacion_geotecnica": { color: "#6C3483", label: "Zona geotécnica"       },
+  "spc_corrientes_agua":         { color: "#1F618D", label: "Corriente de agua"     },
+  "pedregal_de_san_ngel":        { color: "#7E5109", label: "Pedregal"              },
+};
 
-// ── Paleta categórica de 29 colores ─────────────────────────
-const PALETA_INCIDENCIA = [
-  "#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f",
-  "#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ac",
-  "#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00",
-  "#a65628","#f781bf","#999999","#66c2a5",
-  "#8dd3c7","#fdb462","#bebada","#fb8072","#80b1d3",
-  "#bc80bd","#b3de69","#fccde5","#d9d9d9","#ccebc5",
-];
+function _colorPorCapa(capasGeometria) {
+  const capa = (capasGeometria || "").split(",")[0].trim();
+  return CATEGORIAS_CAPA[capa]?.color || "#888";
+}
+
+export function getLabelPorCapa(capasGeometria) {
+  const capa = (capasGeometria || "").split(",")[0].trim();
+  return CATEGORIAS_CAPA[capa]?.label || capa;
+}
 
 // ── Estado del módulo ────────────────────────────────────────
 let map                    = null;
-let layerInstituciones     = null;
 let layerIncidencia        = null;
 let layerOverview          = null;
-let subvistaActual         = "instituciones";
-let proyectoSeleccionado   = null;   // id_proyecto string | null
+let proyectoSeleccionado   = null;
 const colorMap             = new Map(); // id_proyecto → color
 let _cachedGeoJSON         = null;
 let _cachedDatos           = [];
-let _lastAlcaldiaFiltro    = null; // null = inicial, "" = sin filtro, otro = filtro activo
 
 const BOUNDS_CDMX = [[18.9, -99.5], [19.8, -98.7]];
 
@@ -36,10 +41,9 @@ const BOUNDS_CDMX = [[18.9, -99.5], [19.8, -98.7]];
 
 export function getColorMap() { return colorMap; }
 
-export function initMapa(datos, geojsonData, subvista = "instituciones", alcaldiaFiltro = "") {
-  subvistaActual  = subvista;
-  _cachedGeoJSON  = geojsonData;
-  _cachedDatos    = datos;
+export function initMapa(datos, geojsonData) {
+  _cachedGeoJSON = geojsonData;
+  _cachedDatos   = datos;
 
   if (!map) {
     map = L.map("mapa-contenedor").fitBounds(BOUNDS_CDMX);
@@ -48,9 +52,8 @@ export function initMapa(datos, geojsonData, subvista = "instituciones", alcaldi
         '© <a href="https://carto.com/attributions">CartoDB</a> © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 18,
     }).addTo(map);
-    layerInstituciones = L.layerGroup();
-    layerIncidencia    = L.layerGroup();
-    layerOverview      = L.layerGroup();
+    layerIncidencia = L.layerGroup();
+    layerOverview   = L.layerGroup();
 
     if (typeof ResizeObserver !== "undefined") {
       new ResizeObserver(() => map.invalidateSize()).observe(
@@ -60,15 +63,14 @@ export function initMapa(datos, geojsonData, subvista = "instituciones", alcaldi
   }
 
   if (geojsonData) _buildColorMap(geojsonData.features);
-  _renderCapas(datos, geojsonData, subvista, alcaldiaFiltro);
+  _renderCapas(datos, geojsonData);
 }
 
-export function actualizarMapa(datos, subvista, alcaldiaFiltro = "", geojsonData = null) {
+export function actualizarMapa(datos, geojsonData = null) {
   if (!map) return;
-  subvistaActual = subvista;
-  _cachedDatos   = datos;
+  _cachedDatos = datos;
   if (geojsonData) _cachedGeoJSON = geojsonData;
-  _renderCapas(datos, _cachedGeoJSON, subvista, alcaldiaFiltro);
+  _renderCapas(datos, _cachedGeoJSON);
 }
 
 export function invalidarTamano() {
@@ -84,12 +86,12 @@ export function seleccionarProyectoIncidencia(idProyecto) {
   layerOverview.clearLayers();
 
   const feature = _cachedGeoJSON.features.find(
-    f => String(f.properties.id_proyecto) === String(idProyecto)
+    f => String(f.properties.ID) === String(idProyecto)
   );
   if (feature) _renderIncidenciaDetalle(feature, _cachedDatos);
 
-  _actualizarLeyenda(subvistaActual);
-  _actualizarStats(_cachedDatos, subvistaActual, _cachedGeoJSON, "");
+  _actualizarLeyenda();
+  _actualizarStats(_cachedDatos, _cachedGeoJSON);
 
   document.dispatchEvent(new CustomEvent("mapaProyectoSeleccionado", { detail: idProyecto }));
 }
@@ -105,8 +107,8 @@ export function limpiarSeleccionIncidencia() {
 
   map.fitBounds(BOUNDS_CDMX);
 
-  _actualizarLeyenda(subvistaActual);
-  _actualizarStats(_cachedDatos, subvistaActual, _cachedGeoJSON, "");
+  _actualizarLeyenda();
+  _actualizarStats(_cachedDatos, _cachedGeoJSON);
 
   document.dispatchEvent(new CustomEvent("mapaProyectoSeleccionado", { detail: null }));
 }
@@ -115,9 +117,9 @@ export function limpiarSeleccionIncidencia() {
 
 function _buildColorMap(features) {
   if (colorMap.size > 0) return;
-  features.forEach((f, i) => {
-    const id = String(f.properties.id_proyecto);
-    colorMap.set(id, PALETA_INCIDENCIA[i % PALETA_INCIDENCIA.length]);
+  features.forEach(f => {
+    const id = String(f.properties.ID);
+    colorMap.set(id, _colorPorCapa(f.properties.capas_geometria));
   });
 }
 
@@ -131,110 +133,52 @@ function _getCentroid(feature) {
   }
 }
 
-function _renderCapas(datos, geojsonData, subvista, alcaldiaFiltro) {
-  layerInstituciones.clearLayers();
+function _renderCapas(datos, geojsonData) {
   layerIncidencia.clearLayers();
   layerOverview.clearLayers();
 
-  if (subvista === "instituciones") {
-    if (map.hasLayer(layerIncidencia))    map.removeLayer(layerIncidencia);
-    if (!map.hasLayer(layerInstituciones)) map.addLayer(layerInstituciones);
-    _renderInstituciones(datos);
-    // Solo ajusta el extent cuando el filtro de alcaldía cambia de valor
-    const alcaldiaChanged = _lastAlcaldiaFiltro !== null && _lastAlcaldiaFiltro !== alcaldiaFiltro;
-    _lastAlcaldiaFiltro = alcaldiaFiltro;
-    if (alcaldiaChanged) {
-      if (alcaldiaFiltro) {
-        const bounds = layerInstituciones.getBounds();
-        if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60] });
-      } else {
-        map.fitBounds(BOUNDS_CDMX);
-      }
-    }
-  } else {
-    if (map.hasLayer(layerInstituciones)) map.removeLayer(layerInstituciones);
-    if (!map.hasLayer(layerIncidencia))   map.addLayer(layerIncidencia);
-    if (geojsonData) {
-      if (proyectoSeleccionado) {
-        const feature = geojsonData.features.find(
-          f => String(f.properties.id_proyecto) === proyectoSeleccionado
-        );
-        if (feature) _renderIncidenciaDetalle(feature, datos);
-      } else {
-        _renderIncidenciaOverview(geojsonData.features, datos);
-      }
+  if (!map.hasLayer(layerIncidencia)) map.addLayer(layerIncidencia);
+
+  if (geojsonData) {
+    if (proyectoSeleccionado) {
+      const feature = geojsonData.features.find(
+        f => String(f.properties.ID) === proyectoSeleccionado
+      );
+      if (feature) _renderIncidenciaDetalle(feature, datos);
+    } else {
+      _renderIncidenciaOverview(geojsonData.features, datos);
     }
   }
 
-  _actualizarLeyenda(subvista);
-  _actualizarStats(datos, subvista, geojsonData, alcaldiaFiltro);
+  _actualizarLeyenda();
+  _actualizarStats(datos, geojsonData);
 }
 
-function _renderInstituciones(datos) {
-  const instMap = new Map();
-  datos.forEach(d => {
-    if (!d.geometria) return;
-    const coords = parseWKTPoint(d.geometria);
-    if (!coords) return;
-    if (!instMap.has(d.institucion)) {
-      instMap.set(d.institucion, { ...coords, institucion: d.institucion, proyectos: [], monto: 0 });
-    }
-    const entry = instMap.get(d.institucion);
-    entry.proyectos.push(d);
-    entry.monto += d.monto;
-  });
-
-  if (instMap.size === 0) return;
-
-  const counts = [...instMap.values()].map(v => v.proyectos.length);
-  const minC   = Math.min(...counts);
-  const maxC   = Math.max(...counts);
-  const rScale = maxC === minC
-    ? () => 12
-    : n => 8 + ((n - minC) / (maxC - minC)) * 16;
-
-  instMap.forEach(entry => {
-    const n = entry.proyectos.length;
-    const marker = L.circleMarker([entry.lat, entry.lng], {
-      radius:      rScale(n),
-      fillColor:   DORADO,
-      color:       "#fff",
-      weight:      1.5,
-      fillOpacity: 0.85,
-    });
-    marker.bindPopup(`
-      <b style="font-size:0.9rem">${entry.institucion}</b><br>
-      <span style="color:#666">${n} proyecto${n !== 1 ? "s" : ""}</span><br>
-      ${formatoMXN(entry.monto)}
-    `);
-    layerInstituciones.addLayer(marker);
-  });
-}
 
 function _renderIncidenciaOverview(features, datos) {
   const idMap     = new Map(datos.map(d => [String(d.id), d]));
   const idsEnDatos = new Set(datos.map(d => String(d.id)));
 
   features
-    .filter(f => idsEnDatos.has(String(f.properties.id_proyecto)))
+    .filter(f => idsEnDatos.has(String(f.properties.ID)))
     .forEach(f => {
       const center = _getCentroid(f);
       if (!center) return;
-      const id     = String(f.properties.id_proyecto);
-      const color  = colorMap.get(id) || "#888";
+      const id     = String(f.properties.ID);
       const proj   = idMap.get(id);
       const titulo = proj ? (proj.titulo || proj.acronimo) : `Proyecto ${id}`;
-      const nivel  = f.properties.posible_incidencia || "";
+      const nombres = f.properties.nombres || "";
 
+      const color = colorMap.get(id) || _colorPorCapa(f.properties.capas_geometria);
       const marker = L.circleMarker(center, {
         radius:      8,
         fillColor:   color,
         color:       "#fff",
         weight:      2,
-        fillOpacity: 0.9,
+        fillOpacity: 0.85,
       });
       marker.bindTooltip(
-        `<span style="font-size:0.8rem"><b>${titulo}</b><br>Incidencia ${nivel}</span>`,
+        `<span style="font-size:0.8rem"><b>${titulo}</b><br><span style="color:#ccc">${nombres}</span></span>`,
         { permanent: false, direction: "top" }
       );
       marker.on("click", () => seleccionarProyectoIncidencia(id));
@@ -245,15 +189,14 @@ function _renderIncidenciaOverview(features, datos) {
 }
 
 function _renderIncidenciaDetalle(feature, datos) {
-  const id    = String(feature.properties.id_proyecto);
+  const id    = String(feature.properties.ID);
   const color = colorMap.get(id) || "#888";
   const idMap = new Map(datos.map(d => [String(d.id), d]));
   const proj  = idMap.get(id);
   const titulo = proj ? (proj.titulo || proj.acronimo) : `Proyecto ${id}`;
-  const score  = feature.properties.score_incidencia ?? "—";
-  const nivel  = feature.properties.posible_incidencia || "—";
-  const capas  = feature.properties.capas_fuente || "—";
-  const nGeom  = feature.properties.n_geometrias ?? "—";
+  const capas  = feature.properties.capas_geometria || "—";
+  const nGeom  = feature.properties.n_geometrias_gpkg ?? "—";
+  const nombres = feature.properties.nombres || "—";
 
   const geoLayer = L.geoJSON(feature, {
     style: () => ({
@@ -273,8 +216,8 @@ function _renderIncidenciaDetalle(feature, datos) {
     onEachFeature: (f, layer) => {
       layer.bindPopup(`
         <b style="font-size:0.9rem;display:block;margin-bottom:4px">${titulo}</b>
-        <span style="color:#666">Incidencia:</span> ${nivel} &nbsp;(score: ${score})<br>
-        <span style="color:#666">Capa fuente:</span> ${capas}<br>
+        <span style="color:#666">Lugares:</span> ${nombres}<br>
+        <span style="color:#666">Capa:</span> ${capas}<br>
         <span style="color:#666">Geometrías:</span> ${nGeom}
       `);
     },
@@ -290,59 +233,70 @@ function _renderIncidenciaDetalle(feature, datos) {
 
 // ── Sidebar: leyenda y estadísticas ─────────────────────────
 
-function _actualizarLeyenda(subvista) {
+function _actualizarLeyenda() {
   const el = document.getElementById("mapa-leyenda");
   if (!el) return;
-  if (subvista === "instituciones") {
-    el.innerHTML = `
-      <div class="mapa-leyenda-bloque">
-        <div class="sidebar-chart-label">Leyenda</div>
-        <div class="mapa-leyenda-item">
-          <svg width="14" height="14" viewBox="0 0 14 14">
-            <circle cx="7" cy="7" r="6" fill="${DORADO}" fill-opacity="0.85" stroke="#fff" stroke-width="1.5"/>
-          </svg>
-          <span>Institución · tamaño = proyectos</span>
-        </div>
-      </div>`;
-  } else if (proyectoSeleccionado) {
+  if (proyectoSeleccionado) {
     const color = colorMap.get(proyectoSeleccionado) || "#888";
+    const feature = _cachedGeoJSON?.features.find(
+      f => String(f.properties.ID) === proyectoSeleccionado
+    );
+    const nombres = feature?.properties.nombres || "Incidencia territorial";
+    // Cada nombre en la lista separada por coma → un ítem
+    const nombresHtml = nombres.split(",").map(n => `
+      <div class="mapa-leyenda-item">
+        <svg width="14" height="14" viewBox="0 0 14 14">
+          <rect x="1" y="1" width="12" height="12" rx="2" fill="${color}" fill-opacity="0.8"/>
+        </svg>
+        <span>${n.trim()}</span>
+      </div>`).join("");
     el.innerHTML = `
       <div class="mapa-leyenda-bloque">
         <div class="sidebar-chart-label">Proyecto seleccionado</div>
-        <div class="mapa-leyenda-item">
-          <svg width="14" height="14" viewBox="0 0 14 14">
-            <rect x="1" y="1" width="12" height="12" rx="2" fill="${color}" fill-opacity="0.8"/>
-          </svg>
-          <span>Incidencia territorial</span>
-        </div>
+        ${nombresHtml}
       </div>`;
   } else {
+    // Categorías presentes en el GeoJSON actual
+    const categoriasPresentes = new Map();
+    (_cachedGeoJSON?.features || []).forEach(f => {
+      const capa  = (f.properties.capas_geometria || "").split(",")[0].trim();
+      const color = CATEGORIAS_CAPA[capa]?.color || "#888";
+      const label = CATEGORIAS_CAPA[capa]?.label || capa;
+      if (!categoriasPresentes.has(capa)) categoriasPresentes.set(capa, { color, label });
+    });
+
+    const itemsHtml = [...categoriasPresentes.values()].map(({ color, label }) => `
+      <div class="mapa-leyenda-item">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <circle cx="6" cy="6" r="5" fill="${color}" fill-opacity="0.9" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+        <span>${label}</span>
+      </div>`).join("");
+
     el.innerHTML = `
       <div class="mapa-leyenda-bloque">
-        <div class="sidebar-chart-label">Clic en un punto para ver detalle</div>
+        <div class="sidebar-chart-label" style="margin-bottom:0.4rem">Tipo de lugar</div>
+        ${itemsHtml}
+        <div class="sidebar-chart-label" style="margin-top:0.6rem;font-style:italic">Clic en un punto para ver detalle</div>
       </div>`;
   }
 }
 
-function _actualizarStats(datos, subvista, geojsonData, alcaldiaFiltro) {
+function _actualizarStats(datos, geojsonData) {
   const el = document.getElementById("mapa-stats");
   if (!el) return;
-  if (subvista === "instituciones") {
-    const datosCon = datos.filter(d => d.geometria);
-    const numInst  = new Set(datosCon.map(d => d.institucion)).size;
-    el.textContent = `${numInst} institución${numInst !== 1 ? "es" : ""} · ${datosCon.length} proyectos`;
-  } else if (proyectoSeleccionado && geojsonData) {
+  if (proyectoSeleccionado && geojsonData) {
     const f = geojsonData.features.find(
-      feat => String(feat.properties.id_proyecto) === proyectoSeleccionado
+      feat => String(feat.properties.ID) === proyectoSeleccionado
     );
     if (f) {
-      const score = f.properties.score_incidencia ?? "—";
-      el.textContent = `Score incidencia: ${score} · ${f.properties.n_geometrias ?? "—"} geometría(s)`;
+      const capas = f.properties.capas_geometria || "—";
+      el.textContent = `${f.properties.n_geometrias_gpkg ?? "—"} geometría(s) · capa: ${capas}`;
     }
   } else if (geojsonData) {
     const idsEnDatos = new Set(datos.map(d => String(d.id)));
     const n = geojsonData.features.filter(
-      f => idsEnDatos.has(String(f.properties.id_proyecto))
+      f => idsEnDatos.has(String(f.properties.ID))
     ).length;
     el.textContent = `${n} proyecto${n !== 1 ? "s" : ""} con incidencia territorial`;
   }
