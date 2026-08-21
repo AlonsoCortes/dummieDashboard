@@ -1,2 +1,5 @@
 *.csv
 
+# Claude Code
+CLAUDE.md
+.claude/
