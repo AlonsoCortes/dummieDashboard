@@ -47,10 +47,10 @@ export function initMapa(datos, geojsonData) {
 
   if (!map) {
     map = L.map("mapa-contenedor").fitBounds(BOUNDS_CDMX);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
-        '© <a href="https://carto.com/attributions">CartoDB</a> © <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 18,
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(map);
     layerIncidencia = L.layerGroup();
     layerOverview   = L.layerGroup();

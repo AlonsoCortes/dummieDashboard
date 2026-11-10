@@ -5,6 +5,13 @@
 import { formatoMXN } from "./kpis.js";
 import { CAMPO_COLORS } from "./config.js";
 
+const ESTADO_COLORS = {
+  "Vigente":    "#3A7D44",
+  "No vigente": "#C0762A",
+  "Cerrado":    "#6B7280",
+};
+
+
 let sortCol      = null;
 let sortDir      = "asc";
 let lastDatos    = [];
@@ -14,8 +21,9 @@ export function setRowClickHandler(fn) { _onRowClick = fn; }
 export function clearRowClickHandler() { _onRowClick = null; }
 
 const SORT_KEY = [
-  d => d.folio || "",
   d => parseInt(d.id) || 0,
+  d => d.folio || "",
+  d => d.convenio || "",
   d => d.acronimo || "",
   d => d.institucion || "",
   d => d.unidad || "",
@@ -23,8 +31,14 @@ const SORT_KEY = [
   d => d.tipo || "",
   d => d.modalidad || "",
   d => d.nombreRT || "",
+  d => d.rtCorreo || "",
+  d => d.rtTelefono || "",
+  d => d.areaCaptura || "",
+  d => d.direccionEncargada || "",
+  d => d.seguimiento || "",
   d => d.anio || "",
   d => d.monto || 0,
+  d => d.estadoProyecto || "",
 ];
 
 export function initTablaSort() {
@@ -75,11 +89,12 @@ export function renderTabla(datos) {
   filas.forEach(d => {
     const tr = document.createElement("tr");
     const label = d.acronimo !== d.titulo && d.titulo
-      ? `<strong>${d.acronimo}</strong><br><small style="color:#666">${d.titulo.slice(0, 80)}${d.titulo.length > 80 ? "…" : ""}</small>`
+      ? `<strong>${d.acronimo}</strong><br><small style="color:#666">${d.titulo}</small>`
       : `<strong>${d.acronimo}</strong>`;
     tr.innerHTML = `
-      <td>${d.folio || "—"}</td>
       <td>${d.id || "—"}</td>
+      <td>${d.folio || "—"}</td>
+      <td>${d.convenio || "—"}</td>
       <td>${label}</td>
       <td>${d.modalidad === "Convocatoria ITESM-IPN"
         ? `${d.institucion} <small style="color:#888;white-space:nowrap">(IPN-ITESM)</small>`
@@ -94,8 +109,25 @@ export function renderTabla(datos) {
       <td>${d.tipo || "—"}</td>
       <td>${d.modalidad || "—"}</td>
       <td>${d.nombreRT || "—"}</td>
+      <td>${d.rtCorreo ? `<a href="mailto:${d.rtCorreo}" style="color:inherit">${d.rtCorreo}</a>` : "—"}</td>
+      <td>${d.rtTelefono || "—"}</td>
+      <td>${d.areaCaptura || "—"}</td>
+      <td>${d.direccionEncargada || "—"}</td>
+      <td>${d.seguimiento || "—"}</td>
       <td>${d.anio || "—"}</td>
       <td style="text-align:right">${d.monto > 0 ? formatoMXN(d.monto) : "—"}</td>
+      <td>${(() => {
+        if (!d.estadoProyecto) return "—";
+        const color = ESTADO_COLORS[d.estadoProyecto] ?? "#9ca3af";
+        const fullTitle = d.estadoProyecto2
+          ? `${d.estadoProyecto}: ${d.estadoProyecto2}`
+          : d.estadoProyecto;
+        return `<span style="display:inline-flex;align-items:center;gap:0.35rem">
+          <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span>
+          <span title="${fullTitle}" style="color:${color};font-weight:600;font-size:0.8rem">${d.estadoProyecto}</span>
+          ${d.estadoProyecto2 ? `<small style="color:#888">${d.estadoProyecto2}</small>` : ""}
+        </span>`;
+      })()}</td>
     `;
     if (_onRowClick) {
       tr.classList.add("tr--clickable");

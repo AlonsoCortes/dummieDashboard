@@ -199,7 +199,8 @@ body {
   width: 100%;
 }
 
-.filtros select {
+.filtros select,
+.filtro-titulo-input {
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--gris-borde);
   border-radius: 4px;
@@ -210,7 +211,13 @@ body {
   cursor: pointer;
 }
 
-.filtros select:focus {
+.filtro-titulo-input {
+  cursor: text;
+  width: 100%;
+}
+
+.filtros select:focus,
+.filtro-titulo-input:focus {
   outline: 2px solid var(--dorado);
   border-color: var(--dorado);
 }
@@ -348,7 +355,8 @@ tbody tr.tr--clickable:hover {
   font-size: 0.78rem;
 }
 
-.sidebar .filtros select {
+.sidebar .filtros select,
+.sidebar .filtro-titulo-input {
   font-size: 0.82rem;
   min-width: 0;
   width: 100%;
@@ -364,6 +372,19 @@ tbody tr.tr--clickable:hover {
 .sidebar .cselect__option {
   font-size: 0.82rem;
   padding: 0.4rem 0.75rem;
+}
+
+/* Texto SVG global — tamaño base legible para todas las gráficas */
+svg text,
+figure svg text {
+  font-size: 13px !important;
+  font-family: inherit !important;
+}
+
+/* Etiquetas de datos en gráficas de sidebar (tendencia y monto) — más pequeñas */
+#chart-tendencia svg text,
+#chart-monto-anio svg text {
+  font-size: 10px !important;
 }
 
 /* Gráficas del sidebar */
@@ -502,6 +523,33 @@ tbody tr.tr--clickable:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Wrappers de tarjetas secundarias — espacio entre tarjetas */
+#kpis-secundarios-wrapper:not([hidden]),
+#kpis-estado-wrapper:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* Variantes de estado para tarjetas secundarias de Seguimiento */
+.kpi-card--vigente {
+  background: #edf7ee;
+  border-left-color: #3A7D44;
+}
+.kpi-card--vigente .kpi-value { color: #3A7D44; }
+
+.kpi-card--no-vigente {
+  background: #fdf3e8;
+  border-left-color: #C0762A;
+}
+.kpi-card--no-vigente .kpi-value { color: #C0762A; }
+
+.kpi-card--cerrado {
+  background: #f3f4f6;
+  border-left-color: #6B7280;
+}
+.kpi-card--cerrado .kpi-value { color: #6B7280; }
 
 .chart-section {
   border-radius: 8px;
@@ -996,6 +1044,50 @@ tbody tr.tr--clickable:hover {
 
 .incidencia-volver-btn:hover {
   background: rgba(157, 36, 73, 0.08);
+}
+
+/* Tarjetas de contacto RT */
+.rt-contacto-cards {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rt-contacto-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--dorado, #C8A951);
+  border-radius: 8px;
+  background: rgba(200, 169, 81, 0.06);
+  min-width: 220px;
+}
+
+.rt-contacto-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.rt-contacto-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888;
+  margin-bottom: 0.15rem;
+}
+
+.rt-contacto-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--guinda, #6B1C3A);
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.rt-contacto-value:hover {
+  text-decoration: underline;
 }
 
 /* Botón flotante sobre el mapa */

@@ -17,33 +17,42 @@ export async function cargarDatos() {
     const idRaw = d["ID"] ?? d["﻿ID"] ?? "";
 
     return {
-      id:          idRaw.trim(),
-      folio:       d["folio_usernameRT"]?.trim() || "",
-      acronimo:    d.acronimo?.trim() || d.Titulo?.trim() || "Sin título",
-      titulo:      d.Titulo?.trim() || "",
-      monto:       +d.MontoFinanciamiento || 0,
-      anio:        d["año_proyecto"]?.trim() || "",
-      estatus:     "",
-      statusId:    "",
-      institucion: d.InstitucionBuena?.trim() || "Sin institución",
-      unidad:      d.UnidadBuena?.trim() || "",
-      campo:       d.campo_estudio?.trim() || "",
-      tipo:        d.tipo_proyecto?.trim() || "",
-      nombreRT:    d["Responsable Técnico"]?.trim() || d["Responsable técnico"]?.trim() || "",
-      areaCaptura: d.DireccionCompleta?.trim() || "",
-      seguimiento: d["Seguimiento"]?.trim() || "",
-      modalidad:   d.Modalidad?.trim() || "",
-      geometria:   d.geometria?.trim()  || "",
-      alcaldia:    d.alcaldia?.trim()   || "",
-      _itesmDup:   false,
+      id:                  idRaw.trim(),
+      folio:               d["folioUsernameRT"]?.trim() || "",
+      convenio:            d["CodigoConvenio"]?.trim() || "",
+      acronimo:            d.AcronimoPRoyecto?.trim() || d.TituloProyecto?.trim() || "Sin título",
+      titulo:              d.TituloProyecto?.trim() || "",
+      monto:               +d.MontoFinanciamiento || 0,
+      anio:                d["añoConvocatoria"]?.trim() || "",
+      estatus:             "",
+      statusId:            "",
+      institucion:         d.InstitucionApoyo?.trim() || "Sin institución",
+      unidad:              d.UnidadApoyo?.trim() || "",
+      campo:               d.CampoEstudio?.trim() || "",
+      tipo:                d.TipoProyecto?.trim() || "",
+      nombreRT:            d.ResponsableTecnico?.trim() || "",
+      rtCorreo:            d.RTCorreoContacto?.trim() || "",
+      rtTelefono:          d.RTTelefonoContacto?.trim() || "",
+      areaCaptura:         d["DirecciónGeneral"]?.trim() || "",
+      direccionEncargada:  d.DireccionEncargada?.trim() || "",
+      seguimiento:         d.EnlaceSeguimiento?.trim() || "",
+      modalidad:           d.TipoConvocatoria?.trim() || "",
+      tipoInstitucion:     d.TipoInstitucion?.trim() || "",
+      estadoProyecto:      d.EstadoProyecto?.trim()  || "",
+      estadoProyecto2:     d.EstadoProyecto2?.trim() || "",
+      geometria:           d.geometria?.trim() || "",
+      _itesmDup:           false,
     };
   });
+
+  // Excluir filas sin ID (filas vacías o de metadatos en el CSV).
+  const conId = mapped.filter(d => d.id !== "");
 
   // Marcar la segunda fila de cada par ITESM-IPN (mismo folio_usernameRT).
   // La primera aparición es el proyecto canónico; la segunda se excluye de
   // los conteos globales pero sigue visible al filtrar por institución.
   const foliosVistos = new Set();
-  mapped.forEach(d => {
+  conId.forEach(d => {
     if (d.modalidad !== "Convocatoria ITESM-IPN" || !d.folio) return;
     if (foliosVistos.has(d.folio)) {
       d._itesmDup = true;
@@ -52,5 +61,5 @@ export async function cargarDatos() {
     }
   });
 
-  return mapped;
+  return conId;
 }

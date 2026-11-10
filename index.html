@@ -49,6 +49,11 @@
       <!-- Filtros -->
       <div class="filtros">
         <div class="filtro-group">
+          <label for="filtro-titulo">Buscar proyecto</label>
+          <input type="text" id="filtro-titulo" class="filtro-titulo-input"
+                 placeholder="T&iacute;tulo, acr&oacute;nimo, folio o convenio..." autocomplete="off">
+        </div>
+        <div class="filtro-group">
           <label for="filtro-year">A&ntilde;o de registro</label>
           <select id="filtro-year">
             <option value="">Todos</option>
@@ -64,12 +69,6 @@
         <div class="filtro-group" id="filtro-modalidad-group">
           <label for="filtro-modalidad">Modalidad</label>
           <select id="filtro-modalidad">
-            <option value="">Todas</option>
-          </select>
-        </div>
-        <div class="filtro-group" id="filtro-alcaldia-group">
-          <label for="filtro-alcaldia">Alcald&iacute;a/Municipio</label>
-          <select id="filtro-alcaldia">
             <option value="">Todas</option>
           </select>
         </div>
@@ -118,6 +117,10 @@
         <div>
           <div class="sidebar-chart-label">&Aacute;reas &mdash; proyectos</div>
           <div id="chart-area-ranking"></div>
+        </div>
+        <div>
+          <div class="sidebar-chart-label">Direcci&oacute;n Encargada</div>
+          <div id="chart-dir-encargada-ranking"></div>
         </div>
         <div>
           <div class="sidebar-chart-label">Responsables de seguimiento</div>
@@ -177,11 +180,19 @@
       <div id="seguimiento-search-section" style="display:none; margin-bottom:1.2rem">
         <div class="inst-filters-row">
           <div class="inst-search-wrap inst-filters-col--main">
-            <label class="inst-search-label">&Aacute;rea de captura</label>
+            <label class="inst-search-label">Direcci&oacute;n General</label>
             <div class="inst-search-box">
               <input type="text" id="area-search-input" class="inst-search-input"
                      placeholder="Escribe para buscar..." autocomplete="off">
               <ul id="area-search-dropdown" class="inst-search-dropdown"></ul>
+            </div>
+          </div>
+          <div class="inst-search-wrap inst-filters-col--unidad">
+            <label class="inst-search-label">Direcci&oacute;n Encargada</label>
+            <div class="inst-search-box">
+              <input type="text" id="dir-encargada-search-input" class="inst-search-input"
+                     placeholder="Escribe para buscar..." autocomplete="off">
+              <ul id="dir-encargada-search-dropdown" class="inst-search-dropdown"></ul>
             </div>
           </div>
           <div class="inst-search-wrap inst-filters-col--unidad">
@@ -207,6 +218,26 @@
         <span id="rt-nombre"></span>
         <span class="inst-badge" id="rt-badge"></span>
         <button class="inst-clear-btn" id="rt-clear">&#x2715; Limpiar selecci&oacute;n</button>
+      </div>
+
+      <!-- Tarjetas de contacto RT (ocultas por defecto) -->
+      <div id="rt-contacto" style="display:none; margin-bottom:1rem">
+        <div class="rt-contacto-cards">
+          <div class="rt-contacto-card" id="rt-contacto-correo-card" style="display:none">
+            <span class="rt-contacto-icon">&#9993;</span>
+            <div>
+              <div class="rt-contacto-label">Correo de contacto</div>
+              <a id="rt-contacto-correo" class="rt-contacto-value" href="#"></a>
+            </div>
+          </div>
+          <div class="rt-contacto-card" id="rt-contacto-tel-card" style="display:none">
+            <span class="rt-contacto-icon">&#128222;</span>
+            <div>
+              <div class="rt-contacto-label">Tel&eacute;fono de contacto</div>
+              <span id="rt-contacto-tel" class="rt-contacto-value"></span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Encabezado contextual de seguimiento seleccionado (oculto por defecto) -->
@@ -244,17 +275,35 @@
 
         <!-- Columna 2: KPIs secundarios -->
         <div class="kpis-col">
-          <div class="kpi-card--secondary">
-            <div class="kpi-value" id="kpi-promedio">$0</div>
-            <div class="kpi-label">Promedio por proyecto</div>
+          <!-- Tarjetas financieras (General / Institución / RT) -->
+          <div id="kpis-secundarios-wrapper">
+            <div class="kpi-card--secondary">
+              <div class="kpi-value" id="kpi-promedio">$0</div>
+              <div class="kpi-label">Promedio por proyecto</div>
+            </div>
+            <div class="kpi-card--secondary">
+              <div class="kpi-value" id="kpi-maximo">$0</div>
+              <div class="kpi-label">Monto m&aacute;ximo</div>
+            </div>
+            <div class="kpi-card--secondary">
+              <div class="kpi-value" id="kpi-minimo">$0</div>
+              <div class="kpi-label">Monto m&iacute;nimo</div>
+            </div>
           </div>
-          <div class="kpi-card--secondary">
-            <div class="kpi-value" id="kpi-maximo">$0</div>
-            <div class="kpi-label">Monto m&aacute;ximo</div>
-          </div>
-          <div class="kpi-card--secondary">
-            <div class="kpi-value" id="kpi-minimo">$0</div>
-            <div class="kpi-label">Monto m&iacute;nimo</div>
+          <!-- Tarjetas de estado (solo vista Seguimiento) -->
+          <div id="kpis-estado-wrapper" hidden>
+            <div class="kpi-card--secondary kpi-card--vigente">
+              <div class="kpi-value" id="kpi-vigente">0</div>
+              <div class="kpi-label">Vigentes</div>
+            </div>
+            <div class="kpi-card--secondary kpi-card--no-vigente">
+              <div class="kpi-value" id="kpi-no-vigente">0</div>
+              <div class="kpi-label">No vigentes</div>
+            </div>
+            <div class="kpi-card--secondary kpi-card--cerrado">
+              <div class="kpi-value" id="kpi-cerrado">0</div>
+              <div class="kpi-label">Cerrados</div>
+            </div>
           </div>
         </div>
 
@@ -269,7 +318,7 @@
 
           <!-- Vista institución / RT / Seguimiento: barras apiladas año × campo de estudio -->
           <div id="chart-inst-row" style="display:none">
-            <h2 class="section-title">Proyectos por a&ntilde;o y campo de estudio</h2>
+            <h2 class="section-title" id="chart-inst-row-title">Proyectos por a&ntilde;o y campo de estudio</h2>
             <div id="chart-inst-stacked"></div>
           </div>
 
@@ -278,6 +327,12 @@
       </div><!-- /.resumen-top-row -->
 
       </div><!-- /#resumen-wrapper -->
+
+      <!-- Gráfica de Estato Proyecto (solo visible en vista Seguimiento) -->
+      <section id="estado-section" style="display:none; margin-bottom:1.5rem">
+        <h2 class="section-title">Estado de proyectos</h2>
+        <div id="chart-estado-proyecto"></div>
+      </section>
 
       <!-- Vista Mapa -->
       <div id="mapa-section" style="display:none">
@@ -294,8 +349,9 @@
           <table>
             <thead>
               <tr>
-                <th>Folio</th>
                 <th>ID</th>
+                <th>Folio</th>
+                <th>Convenio</th>
                 <th>Acr&oacute;nimo / T&iacute;tulo</th>
                 <th>Instituci&oacute;n</th>
                 <th>Unidad</th>
@@ -303,8 +359,14 @@
                 <th>Tipo de proyecto</th>
                 <th>Modalidad</th>
                 <th>Responsable T&eacute;cnico</th>
+                <th>Correo RT</th>
+                <th>Tel&eacute;fono RT</th>
+                <th>Direcci&oacute;n General</th>
+                <th>Direcci&oacute;n Encargada</th>
+                <th>Responsable Seguimiento</th>
                 <th>A&ntilde;o</th>
                 <th>Monto total</th>
+                <th>Estado</th>
               </tr>
             </thead>
             <tbody id="tabla-body"></tbody>

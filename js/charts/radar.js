@@ -61,7 +61,7 @@ export function renderChartRadar(datos, containerId = "chart-radar") {
         text: d => d.count > 0 ? String(d.count) : "",
         dx: 6,
         fill: "#555",
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 600,
         textAnchor: "start",
         frameAnchor: "middle",
@@ -69,7 +69,7 @@ export function renderChartRadar(datos, containerId = "chart-radar") {
     ],
     style: {
       background: "transparent",
-      fontSize: 11,
+      fontSize: 13,
       fontFamily: "inherit",
     },
   });

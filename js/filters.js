@@ -12,7 +12,6 @@ export function poblarFiltros(datos) {
   const anios      = [...new Set(datos.map(d => d.anio).filter(Boolean))].sort();
   const insts      = listaInstituciones(datos);
   const modalidades = [...new Set(datos.map(d => d.modalidad).filter(Boolean))].sort();
-  const alcaldias  = [...new Set(datos.map(d => d.alcaldia).filter(Boolean))].sort();
 
   const selYear = document.getElementById("filtro-year");
   anios.forEach(a => {
@@ -40,20 +39,12 @@ export function poblarFiltros(datos) {
     });
   }
 
-  const selAlc = document.getElementById("filtro-alcaldia");
-  if (selAlc) {
-    alcaldias.forEach(a => {
-      const opt = document.createElement("option");
-      opt.value = a;
-      opt.textContent = a;
-      selAlc.appendChild(opt);
-    });
-  }
 }
 
 // getTodos: función que devuelve el array completo (para el filtro encadenado)
 // onCambio: callback que se llama cuando cambia cualquier filtro
 export function bindFiltros(getTodos, onCambio) {
+  document.getElementById("filtro-titulo")?.addEventListener("input", onCambio);
   document.getElementById("filtro-year").addEventListener("change", () => {
     actualizarOpcionesInst(getTodos());
     onCambio();
@@ -61,7 +52,6 @@ export function bindFiltros(getTodos, onCambio) {
   document.getElementById("filtro-inst").addEventListener("change", onCambio);
   document.getElementById("filtro-unidad")?.addEventListener("change", onCambio);
   document.getElementById("filtro-modalidad")?.addEventListener("change", onCambio);
-  document.getElementById("filtro-alcaldia")?.addEventListener("change", onCambio);
 }
 
 // Repuebla el select de institución según el año seleccionado
@@ -123,50 +113,56 @@ export function actualizarOpcionesUnidad(todos, instActual) {
   return unidades.length;
 }
 
+function matchTitulo(d, q) {
+  if (!q) return true;
+  const haystack = `${d.folio} ${d.convenio} ${d.acronimo} ${d.titulo}`.toLowerCase();
+  return haystack.includes(q);
+}
+
 // Mismo conjunto de filtros que datosFiltrados pero sin excluir filas _itesmDup.
 // Usar para cálculos de monto: cada fila ITESM-IPN lleva su porción real.
 export function datosFiltradosParaMonto(todos) {
+  const titulo    = (document.getElementById("filtro-titulo")?.value || "").toLowerCase().trim();
   const anio      = document.getElementById("filtro-year").value;
   const inst      = document.getElementById("filtro-inst").value;
   const unidad    = document.getElementById("filtro-unidad")?.value || "";
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
-  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
+    if (!matchTitulo(d, titulo))              return false;
     if (anio      && d.anio        !== anio)      return false;
     if (inst      && d.institucion !== inst)      return false;
     if (unidad    && d.unidad      !== unidad)    return false;
     if (modalidad && d.modalidad   !== modalidad) return false;
-    if (alcaldia  && d.alcaldia    !== alcaldia)  return false;
     return true;
   });
 }
 
 export function datosFiltrados(todos) {
+  const titulo    = (document.getElementById("filtro-titulo")?.value || "").toLowerCase().trim();
   const anio      = document.getElementById("filtro-year").value;
   const inst      = document.getElementById("filtro-inst").value;
   const unidad    = document.getElementById("filtro-unidad")?.value || "";
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
-  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
     if (!inst && d._itesmDup) return false;
+    if (!matchTitulo(d, titulo))              return false;
     if (anio      && d.anio        !== anio)      return false;
     if (inst      && d.institucion !== inst)      return false;
     if (unidad    && d.unidad      !== unidad)    return false;
     if (modalidad && d.modalidad   !== modalidad) return false;
-    if (alcaldia  && d.alcaldia    !== alcaldia)  return false;
     return true;
   });
 }
 
 export function datosFiltradosPorAnio(todos) {
+  const titulo    = (document.getElementById("filtro-titulo")?.value || "").toLowerCase().trim();
   const anio      = document.getElementById("filtro-year").value;
   const modalidad = document.getElementById("filtro-modalidad")?.value || "";
-  const alcaldia  = document.getElementById("filtro-alcaldia")?.value || "";
   return todos.filter(d => {
     if (d._itesmDup) return false;
+    if (!matchTitulo(d, titulo))              return false;
     if (anio      && d.anio      !== anio)      return false;
     if (modalidad && d.modalidad !== modalidad) return false;
-    if (alcaldia  && d.alcaldia  !== alcaldia)  return false;
     return true;
   });
 }

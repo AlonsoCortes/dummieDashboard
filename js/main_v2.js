@@ -1,5 +1,5 @@
-/* ============================================================
-   main_v2.js — Punto de entrada del dashboard SECTEI v2
+﻿/* ============================================================
+   main_v2.js â€" Punto de entrada del dashboard SECTEI v2
    Orquesta la carga de datos, filtros y renderizado.
    Vistas: "general" | "institucion" | "rt" | "seguimiento"
    ============================================================ */
@@ -19,9 +19,11 @@ import { renderInstRanking }                        from "./charts/inst_ranking.
 import { renderInstMontoRanking }                   from "./charts/inst_monto.js";
 import { renderRTRanking }                          from "./charts/rt_ranking.js";
 import { renderRTMontoRanking }                     from "./charts/rt_monto.js";
-import { renderAreaRanking }                        from "./charts/area_ranking.js";
+import { renderAreaRanking, renderDireccionEncargadaRanking } from "./charts/area_ranking.js";
 import { renderSeguimientoRanking }                 from "./charts/seguimiento_ranking.js";
+import { renderEstadoProyecto }                     from "./charts/estado_proyecto.js";
 import { renderInstTimelineStacked }                from "./charts/inst_timeline_stacked.js";
+import { renderTipoInstitucion }                    from "./charts/tipo_institucion.js";
 import { initCustomSelect }                         from "./ui/customSelect.js";
 import { initMapa, actualizarMapa, invalidarTamano,
          seleccionarProyectoIncidencia, limpiarSeleccionIncidencia,
@@ -31,16 +33,17 @@ let todosLosDatos           = [];
 let vistaActual             = "general";
 let instSeleccionada        = null;
 let rtSeleccionado          = null;
-let areaSeleccionada        = null;
-let seguimientoSeleccionado = null;
+let areaSeleccionada              = null;
+let direccionEncargadaSeleccionada = null;
+let seguimientoSeleccionado       = null;
 let geojsonCargado          = null;
 let mapaInicializado        = false;
 
-// ── Utilidades DOM ─────────────────────────────────────────
+// â"€â"€ Utilidades DOM â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function show(id) { const el = document.getElementById(id); if (el) el.style.display = ""; }
 function hide(id) { const el = document.getElementById(id); if (el) el.style.display = "none"; }
 
-// ── Filtro de unidad (dependiente de institución) ───────────
+// â"€â"€ Filtro de unidad (dependiente de instituciÃ³n) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function syncUnidadFiltro(instActual) {
   actualizarOpcionesUnidad(todosLosDatos, instActual);
 }
@@ -51,7 +54,7 @@ function resetUnidadFiltro() {
 }
 
 
-// ── Búsqueda predictiva de institución ─────────────────────
+// â"€â"€ BÃºsqueda predictiva de instituciÃ³n â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function initInstSearch() {
   const input    = document.getElementById("inst-search-input");
   const dropdown = document.getElementById("inst-search-dropdown");
@@ -59,9 +62,9 @@ function initInstSearch() {
 
   function getInsts() {
     const datos = datosFiltradosPorAnio(todosLosDatos);
-    const named = [...new Set(datos.filter(d => d.institucion && d.institucion !== "Sin institución").map(d => d.institucion))].sort();
-    const hasSin = datos.some(d => d.institucion === "Sin institución");
-    return hasSin ? [...named, "Sin institución"] : named;
+    const named = [...new Set(datos.filter(d => d.institucion && d.institucion !== "Sin instituciÃ³n").map(d => d.institucion))].sort();
+    const hasSin = datos.some(d => d.institucion === "Sin instituciÃ³n");
+    return hasSin ? [...named, "Sin instituciÃ³n"] : named;
   }
 
   function showDropdown(insts) {
@@ -105,7 +108,7 @@ function syncInstSearch() {
   if (input) input.value = instSeleccionada || "";
 }
 
-// ── Búsqueda predictiva de responsable técnico ─────────────
+// â"€â"€ BÃºsqueda predictiva de responsable tÃ©cnico â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function initRTSearch() {
   const input    = document.getElementById("rt-search-input");
   const dropdown = document.getElementById("rt-search-dropdown");
@@ -157,7 +160,7 @@ function syncRTSearch() {
   if (input) input.value = rtSeleccionado || "";
 }
 
-// ── Búsqueda predictiva de área ─────────────────────────────
+// â"€â"€ BÃºsqueda predictiva de Ã¡rea â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function initAreaSearch() {
   const input    = document.getElementById("area-search-input");
   const dropdown = document.getElementById("area-search-dropdown");
@@ -180,7 +183,9 @@ function initAreaSearch() {
         areaSeleccionada = area;
         input.value = area;
         dropdown.style.display = "none";
+        direccionEncargadaSeleccionada = null;
         seguimientoSeleccionado = null;
+        syncDireccionEncargadaSearch();
         syncSeguimientoPersonSearch();
         actualizarSeguimiento();
       });
@@ -211,7 +216,62 @@ function syncAreaSearch() {
   if (input) input.value = areaSeleccionada || "";
 }
 
-// ── Búsqueda predictiva de responsable de seguimiento ───────
+// ── Búsqueda predictiva de Dirección Encargada ──────────────────
+function initDireccionEncargadaSearch() {
+  const input    = document.getElementById("dir-encargada-search-input");
+  const dropdown = document.getElementById("dir-encargada-search-dropdown");
+  if (!input || !dropdown) return;
+
+  function getOpciones() {
+    const datos = datosFiltradosPorAnio(todosLosDatos);
+    const base = areaSeleccionada
+      ? datos.filter(d => d.areaCaptura === areaSeleccionada)
+      : datos;
+    return [...new Set(base.map(d => d.direccionEncargada).filter(Boolean))].sort();
+  }
+
+  function showDropdown(opciones) {
+    dropdown.innerHTML = "";
+    if (!opciones.length) { dropdown.style.display = "none"; return; }
+    opciones.forEach(op => {
+      const li = document.createElement("li");
+      li.className = "inst-search-option";
+      li.textContent = op;
+      li.addEventListener("mousedown", e => {
+        e.preventDefault();
+        direccionEncargadaSeleccionada = op;
+        input.value = op;
+        dropdown.style.display = "none";
+        actualizarSeguimiento();
+      });
+      dropdown.appendChild(li);
+    });
+    dropdown.style.display = "block";
+  }
+
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    const ops = getOpciones();
+    showDropdown(q ? ops.filter(o => o.toLowerCase().includes(q)) : ops);
+  });
+
+  input.addEventListener("focus", () => {
+    const q = input.value.toLowerCase().trim();
+    const ops = getOpciones();
+    showDropdown(q ? ops.filter(o => o.toLowerCase().includes(q)) : ops);
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => { dropdown.style.display = "none"; }, 150);
+  });
+}
+
+function syncDireccionEncargadaSearch() {
+  const input = document.getElementById("dir-encargada-search-input");
+  if (input) input.value = direccionEncargadaSeleccionada || "";
+}
+
+// ── Búsqueda predictiva de responsable de seguimiento ───────────
 function initSeguimientoPersonSearch() {
   const input    = document.getElementById("seg-person-search-input");
   const dropdown = document.getElementById("seg-person-search-dropdown");
@@ -266,7 +326,7 @@ function syncSeguimientoPersonSearch() {
   if (input) input.value = seguimientoSeleccionado || "";
 }
 
-// ── Vista Mapa ──────────────────────────────────────────────
+// â"€â"€ Vista Mapa â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function poblarListaIncidencia(geojsonFeatures, datos) {
   const container = document.getElementById("incidencia-lista-items");
   if (!container) return;
@@ -279,7 +339,7 @@ function poblarListaIncidencia(geojsonFeatures, datos) {
   const features = geojsonFeatures.filter(f => idsEnDatos.has(String(f.properties.ID)));
 
   if (features.length === 0) {
-    container.innerHTML = '<p style="font-size:0.78rem;color:#999;padding:0.4rem 0.5rem">Sin proyectos para el año seleccionado.</p>';
+    container.innerHTML = '<p style="font-size:0.78rem;color:#999;padding:0.4rem 0.5rem">Sin proyectos para el aÃ±o seleccionado.</p>';
     return;
   }
 
@@ -322,18 +382,20 @@ async function actualizarMapaVista() {
   renderTabla(datos.filter(d => idsConGeojson.has(String(d.id))));
 }
 
-// ── Vista General ───────────────────────────────────────────
+// â"€â"€ Vista General â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function actualizar() {
   const datos       = datosFiltrados(todosLosDatos);
   const datosMonto  = datosFiltradosParaMonto(todosLosDatos);
   renderKPIs(datos, datosMonto);
+  document.getElementById("kpis-secundarios-wrapper").hidden = false;
+  document.getElementById("kpis-estado-wrapper").hidden = true;
   const unidadesCard = document.getElementById("kpi-unidades-card");
   if (unidadesCard) unidadesCard.style.display = "none";
   renderChartRadar(datos, "chart-radar");
   renderTabla(datos);
 }
 
-// ── Vista Institución ───────────────────────────────────────
+// â"€â"€ Vista InstituciÃ³n â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function actualizarInst() {
   const datosPorAnio = datosFiltradosPorAnio(todosLosDatos);
 
@@ -358,6 +420,8 @@ function actualizarInst() {
     : datosPorAnio;
 
   renderKPIs(datosInst);
+  document.getElementById("kpis-secundarios-wrapper").hidden = false;
+  document.getElementById("kpis-estado-wrapper").hidden = true;
   renderTabla(datosInst);
 
   const unidadesCard = document.getElementById("kpi-unidades-card");
@@ -372,7 +436,9 @@ function actualizarInst() {
 
   hide("chart-section-general");
   show("chart-inst-row");
-  renderInstTimelineStacked(datosInst);
+  const titleInst = document.getElementById("chart-inst-row-title");
+  if (titleInst) titleInst.textContent = "Tipo de institución";
+  renderTipoInstitucion(datosInst, "chart-inst-stacked");
 
   if (instSeleccionada) {
     show("inst-header");
@@ -384,7 +450,7 @@ function actualizarInst() {
   }
 }
 
-// ── Vista Responsable Técnico ───────────────────────────────
+// â"€â"€ Vista Responsable TÃ©cnico â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function actualizarRT() {
   const datosPorAnio = datosFiltradosPorAnio(todosLosDatos);
 
@@ -404,12 +470,16 @@ function actualizarRT() {
     : datosPorAnio;
 
   renderKPIs(datosRT);
+  document.getElementById("kpis-secundarios-wrapper").hidden = false;
+  document.getElementById("kpis-estado-wrapper").hidden = true;
   const unidadesCard = document.getElementById("kpi-unidades-card");
   if (unidadesCard) unidadesCard.style.display = "none";
   renderTabla(datosRT);
 
   hide("chart-section-general");
   show("chart-inst-row");
+  const titleRT = document.getElementById("chart-inst-row-title");
+  if (titleRT) titleRT.textContent = "Proyectos por año y campo de estudio";
   renderInstTimelineStacked(datosRT);
 
   if (rtSeleccionado) {
@@ -417,22 +487,54 @@ function actualizarRT() {
     document.getElementById("rt-nombre").textContent = rtSeleccionado;
     document.getElementById("rt-badge").textContent =
       `${datosRT.length} proyecto${datosRT.length !== 1 ? "s" : ""}`;
+
+    const correo   = datosRT.find(d => d.rtCorreo)?.rtCorreo || "";
+    const telefono = datosRT.find(d => d.rtTelefono)?.rtTelefono || "";
+    const correoCard = document.getElementById("rt-contacto-correo-card");
+    const telCard    = document.getElementById("rt-contacto-tel-card");
+    if (correo) {
+      const a = document.getElementById("rt-contacto-correo");
+      a.href = `mailto:${correo}`;
+      a.textContent = correo;
+      correoCard.style.display = "";
+    } else {
+      correoCard.style.display = "none";
+    }
+    if (telefono) {
+      document.getElementById("rt-contacto-tel").textContent = telefono;
+      telCard.style.display = "";
+    } else {
+      telCard.style.display = "none";
+    }
+    if (correo || telefono) show("rt-contacto");
+    else hide("rt-contacto");
   } else {
     hide("rt-header");
+    hide("rt-contacto");
   }
 }
 
-// ── Vista Seguimiento ───────────────────────────────────────
+// â"€â"€ Vista Seguimiento â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function actualizarSeguimiento() {
   const datosPorAnio = datosFiltradosPorAnio(todosLosDatos);
 
   syncAreaSearch();
+  syncDireccionEncargadaSearch();
   syncSeguimientoPersonSearch();
 
   // Sidebar usa universo completo (sin filtro de año)
   renderAreaRanking(todosLosDatos, areaSeleccionada, sel => {
     areaSeleccionada = sel;
+    direccionEncargadaSeleccionada = null;
     seguimientoSeleccionado = null;
+    syncDireccionEncargadaSearch();
+    syncSeguimientoPersonSearch();
+    actualizarSeguimiento();
+  });
+  renderDireccionEncargadaRanking(todosLosDatos, direccionEncargadaSeleccionada, sel => {
+    direccionEncargadaSeleccionada = sel;
+    seguimientoSeleccionado = null;
+    syncDireccionEncargadaSearch();
     syncSeguimientoPersonSearch();
     actualizarSeguimiento();
   });
@@ -441,23 +543,36 @@ function actualizarSeguimiento() {
     actualizarSeguimiento();
   });
 
-  // Panel principal: respeta filtro de año + área + responsable
+  // Panel principal: respeta filtro de año + área + dirección encargada + responsable
   let datosSeg = datosPorAnio;
-  if (areaSeleccionada)        datosSeg = datosSeg.filter(d => d.areaCaptura === areaSeleccionada);
-  if (seguimientoSeleccionado) datosSeg = datosSeg.filter(d => d.seguimiento === seguimientoSeleccionado);
+  if (areaSeleccionada)              datosSeg = datosSeg.filter(d => d.areaCaptura === areaSeleccionada);
+  if (direccionEncargadaSeleccionada) datosSeg = datosSeg.filter(d => d.direccionEncargada === direccionEncargadaSeleccionada);
+  if (seguimientoSeleccionado)       datosSeg = datosSeg.filter(d => d.seguimiento === seguimientoSeleccionado);
 
   renderKPIs(datosSeg);
+  document.getElementById("kpis-secundarios-wrapper").hidden = true;
+  const estadoWrapper = document.getElementById("kpis-estado-wrapper");
+  estadoWrapper.hidden = false;
+  const vigente   = datosSeg.filter(d => d.estadoProyecto === "Vigente").length;
+  const noVigente = datosSeg.filter(d => d.estadoProyecto === "No vigente").length;
+  const cerrado   = datosSeg.filter(d => d.estadoProyecto === "Cerrado").length;
+  document.getElementById("kpi-vigente").textContent    = vigente;
+  document.getElementById("kpi-no-vigente").textContent = noVigente;
+  document.getElementById("kpi-cerrado").textContent    = cerrado;
   const unidadesCard = document.getElementById("kpi-unidades-card");
   if (unidadesCard) unidadesCard.style.display = "none";
   renderTabla(datosSeg);
 
   hide("chart-section-general");
   show("chart-inst-row");
-  renderInstTimelineStacked(datosSeg);
+  const titleSeg = document.getElementById("chart-inst-row-title");
+  if (titleSeg) titleSeg.textContent = "Estado de los proyectos";
+  renderEstadoProyecto(datosSeg, "chart-inst-stacked");
 
-  if (areaSeleccionada || seguimientoSeleccionado) {
+
+  if (areaSeleccionada || direccionEncargadaSeleccionada || seguimientoSeleccionado) {
     show("seguimiento-header");
-    const partes = [areaSeleccionada, seguimientoSeleccionado].filter(Boolean);
+    const partes = [areaSeleccionada, direccionEncargadaSeleccionada, seguimientoSeleccionado].filter(Boolean);
     document.getElementById("seguimiento-nombre").textContent = partes.join(" — ");
     document.getElementById("seguimiento-badge").textContent =
       `${datosSeg.length} proyecto${datosSeg.length !== 1 ? "s" : ""}`;
@@ -466,14 +581,17 @@ function actualizarSeguimiento() {
   }
 }
 
-// ── Cambio de vista ─────────────────────────────────────────
+// â"€â"€ Cambio de vista â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 function aplicarVista(vista) {
   vistaActual = vista;
   instSeleccionada = null;
   rtSeleccionado = null;
   areaSeleccionada = null;
+  direccionEncargadaSeleccionada = null;
   seguimientoSeleccionado = null;
 
+  const elTitulo = document.getElementById("filtro-titulo");
+  if (elTitulo) elTitulo.value = "";
   document.getElementById("filtro-year").value = "";
   const selInst = document.getElementById("filtro-inst");
   selInst.value = "";
@@ -503,7 +621,6 @@ function aplicarVista(vista) {
     resumenRow.classList.remove("resumen-top-row--inst");
     show("filtro-inst-group");
     show("filtro-modalidad-group");
-    show("filtro-alcaldia-group");
     show("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -514,10 +631,12 @@ function aplicarVista(vista) {
     hide("inst-header");
     hide("rt-search-section");
     hide("rt-header");
+    hide("rt-contacto");
     hide("seguimiento-search-section");
     hide("seguimiento-header");
     show("chart-section-general");
     hide("chart-inst-row");
+    hide("estado-section");
     hide("mapa-section");
     show("resumen-wrapper");
     show("tabla-section-wrap");
@@ -527,7 +646,6 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     show("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -539,6 +657,7 @@ function aplicarVista(vista) {
     hide("rt-header");
     hide("seguimiento-search-section");
     hide("seguimiento-header");
+    hide("estado-section");
     hide("mapa-section");
     show("resumen-wrapper");
     show("tabla-section-wrap");
@@ -549,7 +668,6 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     show("sidebar-charts-rt");
@@ -561,6 +679,7 @@ function aplicarVista(vista) {
     show("rt-search-section");
     hide("seguimiento-search-section");
     hide("seguimiento-header");
+    hide("estado-section");
     hide("mapa-section");
     show("resumen-wrapper");
     show("tabla-section-wrap");
@@ -571,7 +690,6 @@ function aplicarVista(vista) {
     resumenRow.classList.add("resumen-top-row--inst");
     hide("filtro-inst-group");
     show("filtro-modalidad-group");
-    show("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -587,6 +705,7 @@ function aplicarVista(vista) {
     show("resumen-wrapper");
     show("tabla-section-wrap");
     syncAreaSearch();
+    syncDireccionEncargadaSearch();
     syncSeguimientoPersonSearch();
 
     actualizarSeguimiento();
@@ -594,7 +713,6 @@ function aplicarVista(vista) {
     resumenRow.classList.remove("resumen-top-row--inst");
     hide("filtro-inst-group");
     hide("filtro-modalidad-group");
-    hide("filtro-alcaldia-group");
     hide("sidebar-charts-general");
     hide("sidebar-charts-inst");
     hide("sidebar-charts-rt");
@@ -606,6 +724,7 @@ function aplicarVista(vista) {
     hide("seguimiento-search-section"); hide("seguimiento-header");
     hide("chart-section-general");
     hide("chart-inst-row");
+    hide("estado-section");
     hide("resumen-wrapper");
     show("mapa-section");
     show("tabla-section-wrap");
@@ -614,7 +733,7 @@ function aplicarVista(vista) {
   }
 }
 
-// ── Bootstrap ───────────────────────────────────────────────
+// â"€â"€ Bootstrap â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     todosLosDatos = await cargarDatos();
@@ -624,6 +743,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     initInstSearch();
     initRTSearch();
     initAreaSearch();
+    initDireccionEncargadaSearch();
     initSeguimientoPersonSearch();
 
     bindFiltros(
@@ -665,8 +785,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("seguimiento-clear").addEventListener("click", () => {
       areaSeleccionada = null;
+      direccionEncargadaSeleccionada = null;
       seguimientoSeleccionado = null;
       syncAreaSearch();
+      syncDireccionEncargadaSearch();
       syncSeguimientoPersonSearch();
       actualizarSeguimiento();
     });
@@ -704,3 +826,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("Error al cargar datos:", err);
   }
 });
+
